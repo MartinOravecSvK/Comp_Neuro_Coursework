@@ -14,7 +14,6 @@ def calculate_fano_factor(spike_times, window_sizes, duration):
     """
     fano_factors = {}
     for window in window_sizes:
-        window_steps = int(window / 1e-3)  # Convert window size to steps
         num_windows = int(duration / window)
         spike_counts = [np.sum((spike_times >= i * window) & (spike_times < (i + 1) * window)) for i in range(num_windows)]
         variance = np.var(spike_counts)
