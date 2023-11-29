@@ -13,6 +13,10 @@ def generate_spike_train(rate, duration, refractory_period=0):
     Returns:
     np.array: Times of spikes.
     """
+    # TODO:
+    # Use np.random.RandomState.poisson() to generate spikes ???
+
+    # keep dt around 0.1 to 1 ms and 0.01 ms potentially for checking synaptic transmission or voltage-gated ion channels kinetics 
     # dt = 1e-3  # Time step in seconds (1 ms)
     # num_steps = int(duration / dt)
     # spikes = np.random.rand(num_steps) < rate * dt
@@ -30,15 +34,15 @@ def generate_spike_train(rate, duration, refractory_period=0):
     spike_times = []
 
     while current_time < duration:
+        # If a refractory period is set and there was a previous spike, add the refractory period to the current time.
+        if refractory_period > 0 and spike_times:
+            current_time += refractory_period
+
         # Draw the next spike time from an exponential distribution
         next_spike = np.random.exponential(1 / rate)
-        
-        # Check for the refractory period
-        if refractory_period > 0 and len(spike_times) > 0:
-            if next_spike < refractory_period:
-                next_spike = refractory_period
-
         current_time += next_spike
+
+        # Record the spike time if it's within the duration
         if current_time < duration:
             spike_times.append(current_time)
 
