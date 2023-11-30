@@ -1,6 +1,7 @@
 import q1
 import q2
 import q4
+import q5
 
 def main():
     print("Calculating question 1\n")
@@ -11,6 +12,9 @@ def main():
     print("\n\n")
     print("Calculating question 4\n")
     q4.question4()
+    print("\n\n")
+    print("Calculating question 5\n")
+    q5.question5()
     print("\n\n")
 
 

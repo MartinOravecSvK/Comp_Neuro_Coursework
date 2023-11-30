@@ -37,3 +37,8 @@ def calculate_coefficient_of_variation(spike_times):
     
     isi = np.diff(spike_times)
     return np.std(isi) / np.mean(isi)
+
+def load_rho():
+    spike_data = np.genfromtxt('ExtendedCoursework/rho.dat')
+    spike_times = np.array([i*2 for i in range(len(spike_data)) if spike_data[i] == 1]) 
+    return spike_times

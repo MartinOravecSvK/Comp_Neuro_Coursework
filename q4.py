@@ -1,11 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import utils
 
 def question4():
-    # Load the spike data
-    spike_data = np.genfromtxt('ExtendedCoursework/rho.dat')
-    spike_times = np.array([i*2 for i in range(len(spike_data)) if spike_data[i] == 1])
-
+    spike_times = utils.load_rho()
     # Load the stimulus data
     stimulus = np.genfromtxt('ExtendedCoursework/stim.dat')
 
@@ -40,25 +38,6 @@ def question4():
     plt.show()
     plt.figure(figsize=(12, 6))
 
-    spike_rate_segments = []
-    for i in range(window_size_points, len(spike_data) - window_size_points):
-        segment = spike_data[i - window_size_points:i]
-        spike_rate = np.sum(segment) / (window_size_ms / 1000)  # Spikes per second
-        spike_rate_segments.append(spike_rate)
-    average_spike_rate = np.mean(spike_rate_segments, axis=0)
-
-    # Plot STA
-    plt.plot(time_vector, sta, label='Spike-Triggered Average', color='blue')
-
-    # Assuming average_spike_rate needs to be plotted over the same time_vector
-    plt.plot(time_vector, [average_spike_rate] * len(time_vector), label='Average Spike Rate', color='red')
-
-    plt.xlabel('Time before spike (ms)')
-    plt.ylabel('Stimulus / Spike Rate')
-    plt.title('Spike-Triggered Average and Average Spike Rate over 100 ms')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
 
 if __name__ == "__main__":
     question4()
