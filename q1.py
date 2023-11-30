@@ -57,3 +57,6 @@ def question1():
     print("\nWith 5 ms Refractory Period:")
     print("Fano Factors:", fano_with_refractory)
     print("Coefficient of Variation (CV) of ISI:", cv_with_refractory)
+
+if __name__ == "__main__":
+    question1()

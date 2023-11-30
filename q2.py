@@ -2,7 +2,7 @@ import numpy as np
 import utils
 
 def question2():
-    duration = 1200  # 20 minutes
+    duration = 1000  # 20 minutes
     window_sizes = [0.01, 0.05, 0.1]
 
     raw_data = np.genfromtxt('ExtendedCoursework/rho.dat')
