@@ -2,57 +2,50 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class IntegrateAndFireNeuron:
-    def __init__(self, threshold=1.0, tau=10.0, R=1.0):
+    def __init__(self, threshold=-55.0, tau=10.0, R=1.0, E=-70.0):
         self.threshold = threshold  # Spike threshold
         self.tau = tau  # Membrane time constant
         self.R = R  # Membrane resistance
-        self.V = 0.0  # Membrane potential
+        self.V = -70.0  # Membrane potential
+        self.E = E  # Resting potential
+        self.spikeVal = 20.0 # Spike value
+        self.resetVal = -70.0 # Reset value
 
-    def step(self, I, dt):
+    def step(self, RI, dt):
         """
         Update the membrane potential based on the input current
         and time step size.
         """
-        dV = dt / self.tau * (-self.V + self.R * I)
+        if (self.V == self.spikeVal):
+            self.V = self.resetVal
+
+        dV = dt / self.tau * (self.E - self.V + RI)
         self.V += dV
 
-        spike = 0
         if self.V >= self.threshold:
-            spike = 1
-            self.V = 0.0  # Reset membrane potential after spike
-
-        return spike
+            self.V = 20.0  # Set membrane potential to 20 mV
+        
 
 def simulate():
     # Simulation parameters
-    T = 100  # Total time to simulate (ms)
-    dt = 1.0  # Time step (ms)
+    T = 120  # Total time to simulate (ms)
+    dt = 0.1  # Time step (ms)
     time = np.arange(0, T, dt)  # Time array
-    I = 1.5  # Input current (constant)
+    RI = 16  # RmIe (mV)
 
-    # Create a neuron
     neuron = IntegrateAndFireNeuron()
 
-    # Simulation
     membrane_potentials = []
-    spikes = []
 
-    for t in time:
-        spike = neuron.step(I, dt)
-        spikes.append(spike)
+    for _ in time:
+        neuron.step(RI, dt)
         membrane_potentials.append(neuron.V)
 
     # Plotting
-    plt.figure(figsize=(10, 6))
-    plt.subplot(2, 1, 1)
+    plt.figure(figsize=(12, 4))
     plt.plot(time, membrane_potentials, label="Membrane Potential")
     plt.ylabel("Membrane Potential (V)")
-    plt.legend()
-
-    plt.subplot(2, 1, 2)
-    plt.plot(time, spikes, label="Spikes", color='r')
-    plt.xlabel("Time (ms)")
-    plt.ylabel("Spikes")
+    plt.xlabel("Time elapsed (ms)")
     plt.legend()
 
     plt.tight_layout()
