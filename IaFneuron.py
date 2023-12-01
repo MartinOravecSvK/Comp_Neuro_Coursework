@@ -1,33 +1,52 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import utils
 
 class IntegrateAndFireNeuron:
-    def __init__(self, threshold=-55.0, tau=10.0, R=1.0, E=-70.0, refractory_period=0.0):
+    def __init__(self, threshold=-55.0, tau=10.0, R=1.0, E=-70.0, absolut_refractory_period=1.0, relative_refractory_period=4.0, reset_voltage=-80.0):
         self.threshold = threshold  # Spike threshold
         self.tau = tau  # Membrane time constant
         self.R = R  # Membrane resistance
         self.V = -70.0  # Membrane potential
         self.E = E  # Resting potential
-        self.spikeVal = 20.0 # Spike value
-        self.resetVal = -70.0 # Reset value
+        self.spikeVol = 20.0 # Spike value
+        self.restVol = -70.0 # Reset value
+        self.resetVol = reset_voltage # Reset voltage
         self.timeElapsed = 0.0 # Time elapsed
+        self.arf = absolut_refractory_period # Refractory period
+        self.rrf =  relative_refractory_period # Refractory period
+        self.spikes = []
 
     def step(self, RI, dt):
         """
         Update the membrane potential based on the input current
         and time step size.
         """
+        if (len(self.spikes) > 0 and self.timeElapsed+dt < self.spikes[-1]+self.arf):
+            self.timeElapsed += dt
+            if (self.V == self.spikeVol):
+                self.V = self.resetVol
+            return self.V
+        
+        elif (len(self.spikes) > 0 and self.timeElapsed+dt < self.spikes[-1]+self.rrf):
+            self.timeElapsed += dt
+            return self.V
+        
+        elif (self.V == self.resetVol):
+            self.V = self.restVol
+
         self.timeElapsed += dt
 
-        if (self.V == self.spikeVal):
-            self.V = self.resetVal
+        if (self.V == self.spikeVol):
+            self.V = self.restVol
 
         dV = dt / self.tau * (self.E - self.V + RI)
         self.V += dV
 
         if self.V >= self.threshold:
             self.V = 20.0  # Set membrane potential to 20 mV
-        
+            self.spikes.append(self.timeElapsed)
+
         return self.V
 
     def getTimeElapsed(self):
@@ -54,7 +73,7 @@ def poisson_neuron(firing_rate, duration, refractory_period=0, strength=6.0):
 
 def simulateConstant():
     # Simulation parameters
-    T = 100  # Total time to simulate (ms)
+    T = 1000  # Total time to simulate (ms)
     dt = 1.0  # Time step (ms)
     time = np.arange(0, T, dt)  # Time array
     RI = 16  # RmIe (mV)
@@ -83,31 +102,114 @@ def simulateConstant():
     plt.tight_layout()
     plt.show()
 
-def simulatePoisson():
-    # TODO:
-    # Make these values lists to simulate multiple neuron parameters for analaysis
+def simulateMultipleOptions(verbose=True, display_graphs=False, T=100, dt=1.0):
+    time = np.arange(0, T, dt)
+    inhibitory_firing_rate_options = [10] # Hz
+    excitatory_firing_rate_options = [10] # Hz
+    inhibitory_spike_strength_options = [-2.0, -0.5] # mV
+    excitatory_spike_strength_options = [ 2.0,  0.5] # mV
+    # Set a randomness seed for reproducibility
+    presynaptic_neurons_num_inhib_options = [10, 100] # Number of inhibitory poisson process simulated neurons
+    presynaptic_neurons_num_excit_options = [10, 100] # Number of inhibitory poisson process simulated neurons
+    multiple_options = max(len(inhibitory_firing_rate_options), len(excitatory_firing_rate_options), len(inhibitory_spike_strength_options), len(excitatory_spike_strength_options), len(presynaptic_neurons_num_inhib_options), len(presynaptic_neurons_num_excit_options))
     
-    # Simulation parameters
-    T = 100  # Total time to simulate (ms)
-    dt = 1.0  # Time step (ms)
+    for option_i in range(multiple_options):
+        inhibitory_firing_rate = inhibitory_firing_rate_options[min(option_i, len(inhibitory_firing_rate_options)-1)]
+        excitatory_firing_rate = excitatory_firing_rate_options[min(option_i, len(excitatory_firing_rate_options)-1)]
+        inhibitory_spike_strength = inhibitory_spike_strength_options[min(option_i, len(inhibitory_spike_strength_options)-1)]
+        excitatory_spike_strength = excitatory_spike_strength_options[min(option_i, len(excitatory_spike_strength_options)-1)]
+        # Set a randomness seed for reproducibility
+        presynaptic_neurons_num_inhib = presynaptic_neurons_num_inhib_options[min(option_i, len(presynaptic_neurons_num_inhib_options)-1)]
+        presynaptic_neurons_num_excit = presynaptic_neurons_num_excit_options[min(option_i, len(presynaptic_neurons_num_excit_options)-1)]
+
+        if (verbose):
+            print("Inhibitory firing rate: " + str(inhibitory_firing_rate))
+            print("Excitatory firing rate: " + str(excitatory_firing_rate))
+            print("Inhibitory spike strength: " + str(inhibitory_spike_strength))
+            print("Excitatory spike strength: " + str(excitatory_spike_strength))
+            print("Number of inhibitory poisson process simulated neurons: " + str(presynaptic_neurons_num_inhib))
+            print("Number of excitatory poisson process simulated neurons: " + str(presynaptic_neurons_num_excit))
+            # print("\n")
+
+        presynaptic_neurons_inhib = [poisson_neuron(inhibitory_firing_rate, T) for i in range(presynaptic_neurons_num_inhib)]
+        presynaptic_neurons_excit = [poisson_neuron(excitatory_firing_rate, T) for i in range(presynaptic_neurons_num_excit)]
+        simulated_input = np.array([0 for i in range(len(time))])
+        for neuron in presynaptic_neurons_inhib:
+            for spike in neuron:
+                simulated_input[int(spike)] += inhibitory_spike_strength
+        for neuron in presynaptic_neurons_excit:
+            for spike in neuron:
+                simulated_input[int(spike)] += excitatory_spike_strength
+
+        simulated_output_potentials, simulated_output_spikes = simulatePoissonInput(simulated_input, T, dt)
+
+        print("Observed firing rate (Hz):")
+        print(len(simulated_output_spikes) / T * 1000)
+        print("Observed coefficient of variation (CV) of ISI:")
+        print(utils.calculate_coefficient_of_variation(simulated_output_spikes))
+        print("Observed Fano factor:")
+        print(utils.calculate_fano_factor(simulated_output_spikes, [0.01, 0.05, 0.1], T))
+        print("Spike times (ms):")
+        print([a for a in np.round(simulated_output_spikes, 2)])
+
+        if display_graphs:
+            # Plotting
+            plt.figure(figsize=(12, 4))
+            plt.plot(time, simulated_output_potentials, label="Membrane Potential")
+            plt.ylabel("Membrane Potential (V)")
+            plt.xlabel("Time elapsed (ms)")
+
+            # Add a horizontal line for the stable potential (-70 mV)
+            plt.axhline(
+                y=-70.0, 
+                color='black', 
+                linestyle='-', 
+                linewidth=1, 
+                alpha=0.4, 
+                label='Stable Potential (-70 mV)'
+            )
+
+            # Add a horizontal dotted line for the threshold (-55 mV)
+            plt.axhline(
+                y=-55.0, 
+                color='black', 
+                linestyle='--', 
+                linewidth=1, 
+                alpha=0.4, 
+                label='Threshold (-55 mV)'
+            )
+
+            plt.legend()
+
+            plt.tight_layout()
+            plt.show()
+
+def simulateSingleOption(display_graph=True, T=100, dt=1.0):
+    # Simulated neuron parameters
     time = np.arange(0, T, dt)  # Time array
     spike_voltage = 20.0 # Spike Voltage (mV)
     spike_threshold = -55.0 # Spike threshold (mV)
-    refractory_period = 5.0 # Refractory period (ms)
+    absolut_refractory_period = 1.0 # Refractory period (ms)
+    relative_refractory_period = 4.0 # Refractory period (ms)
     E = -70.0 # Resting potential (mV)
-    E_refractory = -75.0 # Refractory potential (mV)
+    E_refractory = -80.0 # Refractory potential (mV)
 
-    # TODO:
-    # Use literature to get some values for these parameters
-    # based on different neuron types and brain regions
-    inhibitory_firing_rate = 20 # Hz
-    excitatory_firing_rate = 20 # Hz
-    inhibitory_spike_strength = -3.0 # mV
-    excitatory_spike_strength = 3.0 # mV
-    # Test
+    integrate_fire_neuron = IntegrateAndFireNeuron(
+        E=E,
+        threshold=spike_threshold,
+        absolut_refractory_period=absolut_refractory_period,
+        relative_refractory_period=relative_refractory_period,
+        reset_voltage=E_refractory,
+    )
 
+    inhibitory_firing_rate = 10 # Hz
+    excitatory_firing_rate = 10 # Hz
+    inhibitory_spike_strength = -2.0 # mV
+    excitatory_spike_strength =  2.0 # mV
+    # Set a randomness seed for reproducibility
     presynaptic_neurons_num_inhib = 10 # Number of inhibitory poisson process simulated neurons
-    presynaptic_neurons_num_excit = 10 # Number of inhibitory poisson process simulated neurons
+    presynaptic_neurons_num_excit = 10 # Number of inhibitory poisson process simulated neurons    
+
     presynaptic_neurons_inhib = [poisson_neuron(inhibitory_firing_rate, T) for i in range(presynaptic_neurons_num_inhib)]
     presynaptic_neurons_excit = [poisson_neuron(excitatory_firing_rate, T) for i in range(presynaptic_neurons_num_excit)]
     simulated_input = np.array([0 for i in range(len(time))])
@@ -117,12 +219,6 @@ def simulatePoisson():
     for neuron in presynaptic_neurons_excit:
         for spike in neuron:
             simulated_input[int(spike)] += excitatory_spike_strength
-
-    integrate_fire_neuron = IntegrateAndFireNeuron(
-        threshold=spike_threshold,
-        E=E,
-        refractory_period=refractory_period,
-    )
 
     membrane_potentials = []
     spikes = np.array([])
@@ -134,42 +230,189 @@ def simulatePoisson():
             spikes = np.append(spikes, t)
         membrane_potentials.append(integrate_fire_neuron.V)
 
+    # Print the results
+    print("Observed firing rate (Hz):")
+    print(len(spikes) / T * 1000)
+    print("Observed coefficient of variation (CV) of ISI:")
+    print(utils.calculate_coefficient_of_variation(spikes))
+    print("Observed Fano factor:")
+    print(utils.calculate_fano_factor(spikes, [0.01, 0.05, 0.1], T))
     print("Spike times (ms):")
     print([a for a in np.round(spikes, 2)])
 
-    # Plotting
-    plt.figure(figsize=(12, 4))
-    plt.plot(time, membrane_potentials, label="Membrane Potential")
-    plt.ylabel("Membrane Potential (V)")
-    plt.xlabel("Time elapsed (ms)")
+    # Show simulation graph
+    if display_graph:
 
-    # Add a horizontal line for the stable potential (-70 mV)
-    plt.axhline(
-        y=E, 
-        color='black', 
-        linestyle='-', 
-        linewidth=1, 
-        alpha=0.4, 
-        label='Stable Potential (-70 mV)'
+        # Plotting
+        plt.figure(figsize=(12, 4))
+        plt.plot(time, membrane_potentials, label="Membrane Potential")
+        plt.ylabel("Membrane Potential (V)")
+        plt.xlabel("Time elapsed (ms)")
+
+        # Add a horizontal line for the stable potential (-70 mV)
+        plt.axhline(
+            y=E, 
+            color='black', 
+            linestyle='-', 
+            linewidth=1, 
+            alpha=0.4, 
+            label='Stable Potential (-70 mV)'
+        )
+
+        # Add a horizontal dotted line for the threshold (-55 mV)
+        plt.axhline(
+            y=spike_threshold, 
+            color='black', 
+            linestyle='--', 
+            linewidth=1, 
+            alpha=0.4, 
+            label='Threshold (-55 mV)'
+        )
+
+        plt.legend()
+
+        plt.tight_layout()
+        plt.show()
+
+def simulatePoissonInput(simulated_input, T, dt):
+    # Simulated neuron parameters
+    time = np.arange(0, T, dt)  # Time array
+    spike_voltage = 20.0 # Spike Voltage (mV)
+    spike_threshold = -55.0 # Spike threshold (mV)
+    absolut_refractory_period = 1.0 # Refractory period (ms)
+    relative_refractory_period = 4.0 # Refractory period (ms)
+    E = -70.0 # Resting potential (mV)
+    E_refractory = -80.0 # Refractory potential (mV)
+
+    integrate_fire_neuron = IntegrateAndFireNeuron(
+        E=E,
+        threshold=spike_threshold,
+        absolut_refractory_period=absolut_refractory_period,
+        relative_refractory_period=relative_refractory_period,
+        reset_voltage=E_refractory,
     )
 
-    # Add a horizontal dotted line for the threshold (-55 mV)
-    plt.axhline(
-        y=spike_threshold, 
-        color='black', 
-        linestyle='--', 
-        linewidth=1, 
-        alpha=0.4, 
-        label='Threshold (-55 mV)'
+    membrane_potentials = []
+    spikes = np.array([])
+
+    for t in time:
+        RI = simulated_input[int(t)]
+        current_voltage = integrate_fire_neuron.step(RI, dt)
+        if (current_voltage == spike_voltage):
+            spikes = np.append(spikes, t)
+        membrane_potentials.append(integrate_fire_neuron.V)
+    
+    return membrane_potentials, spikes
+
+def simulatePoisson(display_graph=True):
+    # TODO:
+    # Make these values lists to simulate multiple neuron parameters for analaysis
+
+    np.random.seed(2024)
+    # Simulated neuron parameters
+    T = 1000  # Total simulation time (ms)
+    dt = 0.25  # Time step (ms)
+    time = np.arange(0, T, dt)  # Time array
+    spike_voltage = 20.0 # Spike Voltage (mV)
+    spike_threshold = -55.0 # Spike threshold (mV)
+    absolut_refractory_period = 1.0 # Refractory period (ms)
+    relative_refractory_period = 4.0 # Refractory period (ms)
+    E = -70.0 # Resting potential (mV)
+    E_refractory = -80.0 # Refractory potential (mV)
+
+    integrate_fire_neuron = IntegrateAndFireNeuron(
+        E=E,
+        threshold=spike_threshold,
+        absolut_refractory_period=absolut_refractory_period,
+        relative_refractory_period=relative_refractory_period,
+        reset_voltage=E_refractory,
     )
 
-    plt.legend()
+    inhibitory_firing_rate = 10 # Hz
+    excitatory_firing_rate = 10 # Hz
+    inhibitory_spike_strength = -2.0 # mV
+    excitatory_spike_strength =  2.0 # mV
+    # Set a randomness seed for reproducibility
+    presynaptic_neurons_num_inhib = 10 # Number of inhibitory poisson process simulated neurons
+    presynaptic_neurons_num_excit = 10 # Number of inhibitory poisson process simulated neurons    
 
-    plt.tight_layout()
-    plt.show()
+    presynaptic_neurons_inhib = [poisson_neuron(inhibitory_firing_rate, T) for i in range(presynaptic_neurons_num_inhib)]
+    presynaptic_neurons_excit = [poisson_neuron(excitatory_firing_rate, T) for i in range(presynaptic_neurons_num_excit)]
+    simulated_input = np.array([0 for i in range(len(time))])
+    for neuron in presynaptic_neurons_inhib:
+        for spike in neuron:
+            simulated_input[int(spike)] += inhibitory_spike_strength
+    for neuron in presynaptic_neurons_excit:
+        for spike in neuron:
+            simulated_input[int(spike)] += excitatory_spike_strength
+
+    membrane_potentials = []
+    spikes = np.array([])
+
+    for t in time:
+        RI = simulated_input[int(t)]
+        current_voltage = integrate_fire_neuron.step(RI, dt)
+        if (current_voltage == spike_voltage):
+            spikes = np.append(spikes, t)
+        membrane_potentials.append(integrate_fire_neuron.V)
+
+    # Print the results
+    print("Observed firing rate (Hz):")
+    print(len(spikes) / T * 1000)
+    print("Observed coefficient of variation (CV) of ISI:")
+    print(utils.calculate_coefficient_of_variation(spikes))
+    print("Observed Fano factor:")
+    print(utils.calculate_fano_factor(spikes, [0.01, 0.05, 0.1], T))
+    print("Spike times (ms):")
+    print([a for a in np.round(spikes, 2)])
+
+    # Show simulation graph
+    if display_graph:
+
+        # Plotting
+        plt.figure(figsize=(12, 4))
+        plt.plot(time, membrane_potentials, label="Membrane Potential")
+        plt.ylabel("Membrane Potential (V)")
+        plt.xlabel("Time elapsed (ms)")
+
+        # Add a horizontal line for the stable potential (-70 mV)
+        plt.axhline(
+            y=E, 
+            color='black', 
+            linestyle='-', 
+            linewidth=1, 
+            alpha=0.4, 
+            label='Stable Potential (-70 mV)'
+        )
+
+        # Add a horizontal dotted line for the threshold (-55 mV)
+        plt.axhline(
+            y=spike_threshold, 
+            color='black', 
+            linestyle='--', 
+            linewidth=1, 
+            alpha=0.4, 
+            label='Threshold (-55 mV)'
+        )
+
+        plt.legend()
+
+        plt.tight_layout()
+        plt.show()
 
 if __name__ == "__main__":
+    np.random.seed(2024)
     simulate_constant = False
-    simulate_poisson = True
+    simulate_poisson = False
+    display_graph = True
+
     if simulate_constant: simulateConstant()
-    if simulate_poisson: simulatePoisson()
+    if simulate_poisson: simulatePoisson(display_graph=display_graph)
+
+    T = 1000  # Total simulation time (ms)
+    dt = 0.25  # Time step (ms)
+
+    run_multiple_simulations = True
+    
+    if run_multiple_simulations: simulateMultipleOptions(verbose=True, display_graphs=display_graph, T=T, dt=dt)
+    else : simulateMultipleOptions(verbose=True, display_graphs=display_graph, T=T, dt=dt)
