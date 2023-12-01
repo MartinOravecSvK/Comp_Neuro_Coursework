@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class IntegrateAndFireNeuron:
-    def __init__(self, threshold=-55.0, tau=10.0, R=1.0, E=-70.0):
+    def __init__(self, threshold=-55.0, tau=10.0, R=1.0, E=-70.0, refractory_period=0.0):
         self.threshold = threshold  # Spike threshold
         self.tau = tau  # Membrane time constant
         self.R = R  # Membrane resistance
@@ -84,18 +84,23 @@ def simulateConstant():
     plt.show()
 
 def simulatePoisson():
+    # TODO:
+    # Make these values lists to simulate multiple neuron parameters for analaysis
+    
     # Simulation parameters
-    T = 500  # Total time to simulate (ms)
+    T = 100  # Total time to simulate (ms)
     dt = 1.0  # Time step (ms)
     time = np.arange(0, T, dt)  # Time array
-    RI = 16  # RmIe (mV)
     spike_voltage = 20.0 # Spike Voltage (mV)
+    spike_threshold = -55.0 # Spike threshold (mV)
+    refractory_period = 5.0 # Refractory period (ms)
+    E = -70.0 # Resting potential (mV)
 
     # TODO:
     # Use literature to get some values for these parameters
     # based on different neuron types and brain regions
-    inhibitory_firing_rate = 35 # Hz
-    excitatory_firing_rate = 35 # Hz
+    inhibitory_firing_rate = 15 # Hz
+    excitatory_firing_rate = 15 # Hz
     inhibitory_spike_strength = -3.0 # mV
     excitatory_spike_strength = 3.0 # mV
 
@@ -111,7 +116,11 @@ def simulatePoisson():
         for spike in neuron:
             simulated_input[int(spike)] += excitatory_spike_strength
 
-    integrate_fire_neuron = IntegrateAndFireNeuron()
+    integrate_fire_neuron = IntegrateAndFireNeuron(
+        threshold=spike_threshold,
+        E=E,
+        refractory_period=refractory_period,
+    )
 
     membrane_potentials = []
     spikes = np.array([])
@@ -131,6 +140,27 @@ def simulatePoisson():
     plt.plot(time, membrane_potentials, label="Membrane Potential")
     plt.ylabel("Membrane Potential (V)")
     plt.xlabel("Time elapsed (ms)")
+
+    # Add a horizontal line for the stable potential (-70 mV)
+    plt.axhline(
+        y=E, 
+        color='black', 
+        linestyle='-', 
+        linewidth=1, 
+        alpha=0.4, 
+        label='Stable Potential (-70 mV)'
+    )
+
+    # Add a horizontal dotted line for the threshold (-55 mV)
+    plt.axhline(
+        y=spike_threshold, 
+        color='black', 
+        linestyle='--', 
+        linewidth=1, 
+        alpha=0.4, 
+        label='Threshold (-55 mV)'
+    )
+
     plt.legend()
 
     plt.tight_layout()
