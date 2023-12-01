@@ -10,12 +10,15 @@ class IntegrateAndFireNeuron:
         self.E = E  # Resting potential
         self.spikeVal = 20.0 # Spike value
         self.resetVal = -70.0 # Reset value
+        self.timeElapsed = 0.0 # Time elapsed
 
     def step(self, RI, dt):
         """
         Update the membrane potential based on the input current
         and time step size.
         """
+        self.timeElapsed += dt
+
         if (self.V == self.spikeVal):
             self.V = self.resetVal
 
@@ -25,21 +28,103 @@ class IntegrateAndFireNeuron:
         if self.V >= self.threshold:
             self.V = 20.0  # Set membrane potential to 20 mV
         
+        return self.V
 
-def simulate():
+    def getTimeElapsed(self):
+        return self.timeElapsed
+
+def poisson_neuron(firing_rate, duration, refractory_period=0, strength=6.0):
+    current_time = 0
+    spike_times = []
+
+    while current_time < duration:
+        # If a refractory period is set and there was a previous spike, add the refractory period to the current time.
+        if refractory_period > 0 and spike_times:
+            current_time += refractory_period
+
+        # Draw the next spike time from an exponential distribution
+        next_spike = np.random.exponential(1 / firing_rate)
+        current_time += next_spike
+
+        # Record the spike time if it's within the duration
+        if current_time < duration:
+            spike_times.append(current_time)
+
+    return np.array(spike_times)
+
+def simulateConstant():
     # Simulation parameters
-    T = 120  # Total time to simulate (ms)
-    dt = 0.1  # Time step (ms)
+    T = 100  # Total time to simulate (ms)
+    dt = 1.0  # Time step (ms)
     time = np.arange(0, T, dt)  # Time array
     RI = 16  # RmIe (mV)
+    spike_voltage = 20.0 # Spike Voltage (mV)
 
     neuron = IntegrateAndFireNeuron()
 
     membrane_potentials = []
+    spikes = np.array([])
 
-    for _ in time:
-        neuron.step(RI, dt)
+    for t in time:
+        current_voltage = neuron.step(RI, dt)
+        if (current_voltage == spike_voltage):
+            spikes = np.append(spikes, t)
         membrane_potentials.append(neuron.V)
+    print("Spike times (ms):")
+    print([a for a in np.round(spikes, 2)])
+
+    # Plotting
+    plt.figure(figsize=(12, 4))
+    plt.plot(time, membrane_potentials, label="Membrane Potential")
+    plt.ylabel("Membrane Potential (V)")
+    plt.xlabel("Time elapsed (ms)")
+    plt.legend()
+
+    plt.tight_layout()
+    plt.show()
+
+def simulatePoisson():
+    # Simulation parameters
+    T = 500  # Total time to simulate (ms)
+    dt = 1.0  # Time step (ms)
+    time = np.arange(0, T, dt)  # Time array
+    RI = 16  # RmIe (mV)
+    spike_voltage = 20.0 # Spike Voltage (mV)
+
+    # TODO:
+    # Use literature to get some values for these parameters
+    # based on different neuron types and brain regions
+    inhibitory_firing_rate = 35 # Hz
+    excitatory_firing_rate = 35 # Hz
+    inhibitory_spike_strength = -3.0 # mV
+    excitatory_spike_strength = 3.0 # mV
+
+    presynaptic_neurons_num_inhib = 10 # Number of inhibitory poisson process simulated neurons
+    presynaptic_neurons_num_excit = 10 # Number of inhibitory poisson process simulated neurons
+    presynaptic_neurons_inhib = [poisson_neuron(inhibitory_firing_rate, T) for i in range(presynaptic_neurons_num_inhib)]
+    presynaptic_neurons_excit = [poisson_neuron(excitatory_firing_rate, T) for i in range(presynaptic_neurons_num_excit)]
+    simulated_input = np.array([0 for i in range(len(time))])
+    for neuron in presynaptic_neurons_inhib:
+        for spike in neuron:
+            simulated_input[int(spike)] += inhibitory_spike_strength
+    for neuron in presynaptic_neurons_excit:
+        for spike in neuron:
+            simulated_input[int(spike)] += excitatory_spike_strength
+
+    integrate_fire_neuron = IntegrateAndFireNeuron()
+
+    membrane_potentials = []
+    spikes = np.array([])
+
+    for t in time:
+        RI = simulated_input[int(t)]
+        current_voltage = integrate_fire_neuron.step(RI, dt)
+        if (current_voltage == spike_voltage):
+            spikes = np.append(spikes, t)
+        membrane_potentials.append(integrate_fire_neuron.V)
+
+    print("Spike times (ms):")
+    print([a for a in np.round(spikes, 2)])
 
     # Plotting
     plt.figure(figsize=(12, 4))
@@ -52,5 +137,7 @@ def simulate():
     plt.show()
 
 if __name__ == "__main__":
-    simulate()
-
+    simulate_constant = False
+    simulate_poisson = True
+    if simulate_constant: simulateConstant()
+    if simulate_poisson: simulatePoisson()
