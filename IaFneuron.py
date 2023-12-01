@@ -95,6 +95,7 @@ def simulatePoisson():
     spike_threshold = -55.0 # Spike threshold (mV)
     refractory_period = 5.0 # Refractory period (ms)
     E = -70.0 # Resting potential (mV)
+    E_refractory = -75.0 # Refractory potential (mV)
 
     # TODO:
     # Use literature to get some values for these parameters
@@ -103,6 +104,7 @@ def simulatePoisson():
     excitatory_firing_rate = 20 # Hz
     inhibitory_spike_strength = -3.0 # mV
     excitatory_spike_strength = 3.0 # mV
+    # Test
 
     presynaptic_neurons_num_inhib = 10 # Number of inhibitory poisson process simulated neurons
     presynaptic_neurons_num_excit = 10 # Number of inhibitory poisson process simulated neurons
