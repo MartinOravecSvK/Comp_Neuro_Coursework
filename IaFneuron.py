@@ -131,8 +131,8 @@ def simulateMultipleOptions(verbose=True, display_graphs=False, T=100, dt=1.0):
             print("Number of excitatory poisson process simulated neurons: " + str(presynaptic_neurons_num_excit))
             # print("\n")
 
-        presynaptic_neurons_inhib = [poisson_neuron(inhibitory_firing_rate, T) for i in range(presynaptic_neurons_num_inhib)]
-        presynaptic_neurons_excit = [poisson_neuron(excitatory_firing_rate, T) for i in range(presynaptic_neurons_num_excit)]
+        presynaptic_neurons_inhib = [poisson_neuron(inhibitory_firing_rate, T) for _ in range(presynaptic_neurons_num_inhib)]
+        presynaptic_neurons_excit = [poisson_neuron(excitatory_firing_rate, T) for _ in range(presynaptic_neurons_num_excit)]
         simulated_input = np.array([0 for i in range(len(time))])
         for neuron in presynaptic_neurons_inhib:
             for spike in neuron:
@@ -330,11 +330,11 @@ def simulatePoisson(display_graph=True):
 
     inhibitory_firing_rate = 10 # Hz
     excitatory_firing_rate = 10 # Hz
-    inhibitory_spike_strength = -2.0 # mV
-    excitatory_spike_strength =  2.0 # mV
+    inhibitory_spike_strength = -0.5 # mV
+    excitatory_spike_strength =  0.5 # mV
     # Set a randomness seed for reproducibility
-    presynaptic_neurons_num_inhib = 10 # Number of inhibitory poisson process simulated neurons
-    presynaptic_neurons_num_excit = 10 # Number of inhibitory poisson process simulated neurons    
+    presynaptic_neurons_num_inhib = 100 # Number of inhibitory poisson process simulated neurons
+    presynaptic_neurons_num_excit = 100 # Number of inhibitory poisson process simulated neurons    
 
     presynaptic_neurons_inhib = [poisson_neuron(inhibitory_firing_rate, T) for i in range(presynaptic_neurons_num_inhib)]
     presynaptic_neurons_excit = [poisson_neuron(excitatory_firing_rate, T) for i in range(presynaptic_neurons_num_excit)]
@@ -412,7 +412,7 @@ if __name__ == "__main__":
     T = 1000  # Total simulation time (ms)
     dt = 0.25  # Time step (ms)
 
-    run_multiple_simulations = True
+    run_multiple_simulations = False
     
     if run_multiple_simulations: simulateMultipleOptions(verbose=True, display_graphs=display_graph, T=T, dt=dt)
-    else : simulateMultipleOptions(verbose=True, display_graphs=display_graph, T=T, dt=dt)
+    else : simulateSingleOption(display_graph=display_graph, T=T, dt=dt)
