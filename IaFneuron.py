@@ -99,8 +99,8 @@ def simulatePoisson():
     # TODO:
     # Use literature to get some values for these parameters
     # based on different neuron types and brain regions
-    inhibitory_firing_rate = 15 # Hz
-    excitatory_firing_rate = 15 # Hz
+    inhibitory_firing_rate = 20 # Hz
+    excitatory_firing_rate = 20 # Hz
     inhibitory_spike_strength = -3.0 # mV
     excitatory_spike_strength = 3.0 # mV
 
