@@ -103,22 +103,23 @@ def simulateConstant():
     plt.show()
 
 def simulateMultipleOptions(verbose=True, display_graphs=False, T=100, dt=1.0):
+    output = ""
+    _, axs = plt.subplots(2, 1, figsize=(12, 10))
     time = np.arange(0, T, dt)
     inhibitory_firing_rate_options = [10] # Hz
     excitatory_firing_rate_options = [10] # Hz
-    inhibitory_spike_strength_options = [-2.0, -0.5] # mV
-    excitatory_spike_strength_options = [ 2.0,  0.5] # mV
-    # Set a randomness seed for reproducibility
-    presynaptic_neurons_num_inhib_options = [10, 100] # Number of inhibitory poisson process simulated neurons
-    presynaptic_neurons_num_excit_options = [10, 100] # Number of inhibitory poisson process simulated neurons
+    inhibitory_spike_strength_options = [-2.0, -2.5, -3.0, -3.5, -4.0, -4.5, -5.0, -0.5, -1.0, -1.5] # mV
+    excitatory_spike_strength_options = [ 2.0,  2.5,  3.0,  3.5,  4.0,  4.5,  5.0,  0.5,  1.0,  1.5] # mV
+    presynaptic_neurons_num_inhib_options = [10, 10, 10, 10, 10, 10, 10, 100, 100, 100] # Number of inhibitory poisson process simulated neurons
+    presynaptic_neurons_num_excit_options = [10, 10, 10, 10, 10, 10, 10, 100, 100, 100] # Number of inhibitory poisson process simulated neurons
     multiple_options = max(len(inhibitory_firing_rate_options), len(excitatory_firing_rate_options), len(inhibitory_spike_strength_options), len(excitatory_spike_strength_options), len(presynaptic_neurons_num_inhib_options), len(presynaptic_neurons_num_excit_options))
     
     for option_i in range(multiple_options):
+        print("Simulating option " + str(option_i+1) + " of " + str(multiple_options) + "...")
         inhibitory_firing_rate = inhibitory_firing_rate_options[min(option_i, len(inhibitory_firing_rate_options)-1)]
         excitatory_firing_rate = excitatory_firing_rate_options[min(option_i, len(excitatory_firing_rate_options)-1)]
         inhibitory_spike_strength = inhibitory_spike_strength_options[min(option_i, len(inhibitory_spike_strength_options)-1)]
         excitatory_spike_strength = excitatory_spike_strength_options[min(option_i, len(excitatory_spike_strength_options)-1)]
-        # Set a randomness seed for reproducibility
         presynaptic_neurons_num_inhib = presynaptic_neurons_num_inhib_options[min(option_i, len(presynaptic_neurons_num_inhib_options)-1)]
         presynaptic_neurons_num_excit = presynaptic_neurons_num_excit_options[min(option_i, len(presynaptic_neurons_num_excit_options)-1)]
 
@@ -129,28 +130,39 @@ def simulateMultipleOptions(verbose=True, display_graphs=False, T=100, dt=1.0):
             print("Excitatory spike strength: " + str(excitatory_spike_strength))
             print("Number of inhibitory poisson process simulated neurons: " + str(presynaptic_neurons_num_inhib))
             print("Number of excitatory poisson process simulated neurons: " + str(presynaptic_neurons_num_excit))
-            # print("\n")
+            print("\n")
 
         presynaptic_neurons_inhib = [poisson_neuron(inhibitory_firing_rate, T) for _ in range(presynaptic_neurons_num_inhib)]
         presynaptic_neurons_excit = [poisson_neuron(excitatory_firing_rate, T) for _ in range(presynaptic_neurons_num_excit)]
-        simulated_input = np.array([0 for i in range(len(time))])
+        simulated_input = np.array([0.0 for _ in range(len(time))])
         for neuron in presynaptic_neurons_inhib:
             for spike in neuron:
                 simulated_input[int(spike)] += inhibitory_spike_strength
         for neuron in presynaptic_neurons_excit:
             for spike in neuron:
                 simulated_input[int(spike)] += excitatory_spike_strength
-
         simulated_output_potentials, simulated_output_spikes = simulatePoissonInput(simulated_input, T, dt)
 
-        print("Observed firing rate (Hz):")
-        print(len(simulated_output_spikes) / T * 1000)
-        print("Observed coefficient of variation (CV) of ISI:")
-        print(utils.calculate_coefficient_of_variation(simulated_output_spikes))
-        print("Observed Fano factor:")
-        print(utils.calculate_fano_factor(simulated_output_spikes, [0.01, 0.05, 0.1], T))
-        print("Spike times (ms):")
-        print([a for a in np.round(simulated_output_spikes, 2)])
+        if (verbose):
+            print("Observed firing rate (Hz):")
+            print(len(simulated_output_spikes) / T * 1000)
+            print("Observed coefficient of variation (CV) of ISI:")
+            print(utils.calculate_coefficient_of_variation(simulated_output_spikes))
+            print("Observed Fano factor:")
+            print(utils.calculate_fano_factor(simulated_output_spikes, [0.01, 0.05, 0.1], T))
+            print("Spike times (ms):")
+            print([a for a in np.round(simulated_output_spikes, 2)])
+            print("\n")
+
+        output += "Inhibitory:                     Excitatory:\n"
+        output += "(Hz) firing rate:     " + str(inhibitory_firing_rate) + " "*(5-len(str(inhibitory_firing_rate))) +               "| firing rate:    " + str(excitatory_firing_rate) + "\n"
+        output += "(mV) spike strength: " + str(inhibitory_spike_strength) + " "*(6-len(str(inhibitory_spike_strength))) +          "| spike strength: " + str(excitatory_spike_strength) + "\n"
+        output += "(N)  PPSim Neurons:   " + str(presynaptic_neurons_num_inhib) + " "*(5-len(str(presynaptic_neurons_num_inhib))) + "| PPSim neurons:  " + str(presynaptic_neurons_num_excit) + "\n"
+        output += "Observed:\n"
+        output += "firing rate (Hz): " + str(len(simulated_output_spikes) / T * 1000) + "\n"
+        output += "coefficient of variation (CV) of ISI: " + str(utils.calculate_coefficient_of_variation(simulated_output_spikes)) + "\n"
+        output += "Fano factor: " + str(utils.calculate_fano_factor(simulated_output_spikes, [0.01, 0.05, 0.1], T)) + "\n\n"
+        axs[0 if presynaptic_neurons_num_excit == 10 else 1].plot(time, simulated_output_potentials, label=f'Param {excitatory_spike_strength}', color=plt.cm.viridis(option_i / multiple_options))
 
         if display_graphs:
             # Plotting
@@ -183,6 +195,21 @@ def simulateMultipleOptions(verbose=True, display_graphs=False, T=100, dt=1.0):
 
             plt.tight_layout()
             plt.show()
+
+    print("Done!\n")
+    print(output)
+
+    # Display graphs
+    axs[0].set_title('10 PPSim Neurons')
+    axs[0].set_ylabel('Membrane Potential (V)')
+    axs[0].set_xlabel('Time elapsed (ms)')
+    axs[0].legend()
+    axs[1].set_title('100 PPSim Neurons')
+    axs[1].set_ylabel('Membrane Potential (V)')
+    axs[1].set_xlabel('Time elapsed (ms)')
+    axs[1].legend()
+    plt.tight_layout()
+    plt.show()
 
 def simulateSingleOption(display_graph=True, T=100, dt=1.0):
     # Simulated neuron parameters
@@ -404,15 +431,15 @@ if __name__ == "__main__":
     np.random.seed(2024)
     simulate_constant = False
     simulate_poisson = False
-    display_graph = True
+    display_graph = False
 
     if simulate_constant: simulateConstant()
     if simulate_poisson: simulatePoisson(display_graph=display_graph)
 
-    T = 1000  # Total simulation time (ms)
-    dt = 0.25  # Time step (ms)
+    T = 100  # Total simulation time (ms)
+    dt = 0.1  # Time step (ms)
 
-    run_multiple_simulations = False
+    run_multiple_simulations = True
     
-    if run_multiple_simulations: simulateMultipleOptions(verbose=True, display_graphs=display_graph, T=T, dt=dt)
+    if run_multiple_simulations: simulateMultipleOptions(verbose=False, display_graphs=display_graph, T=T, dt=dt)
     else : simulateSingleOption(display_graph=display_graph, T=T, dt=dt)
