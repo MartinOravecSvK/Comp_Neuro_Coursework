@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 import utils
+import threading
 
 class IntegrateAndFireNeuron:
     def __init__(self, threshold=-55.0, tau=10.0, R=1.0, E=-70.0, absolut_refractory_period=1.0, relative_refractory_period=4.0, reset_voltage=-80.0):
@@ -204,10 +206,48 @@ def simulateMultipleOptions(verbose=True, display_graphs=False, T=100, dt=1.0):
     axs[0].set_ylabel('Membrane Potential (V)')
     axs[0].set_xlabel('Time elapsed (ms)')
     axs[0].legend()
+    # Add a horizontal line for the stable potential (-70 mV)
+    axs[0].axhline(
+        y=-70.0, 
+        color='black', 
+        linestyle='-', 
+        linewidth=1, 
+        alpha=0.4, 
+        label='Stable Potential (-70 mV)'
+    )
+
+    # Add a horizontal dotted line for the threshold (-55 mV)
+    axs[0].axhline(
+        y=-55.0, 
+        color='black', 
+        linestyle='--', 
+        linewidth=1, 
+        alpha=0.4, 
+        label='Threshold (-55 mV)'
+    )
     axs[1].set_title('100 PPSim Neurons')
     axs[1].set_ylabel('Membrane Potential (V)')
     axs[1].set_xlabel('Time elapsed (ms)')
     axs[1].legend()
+    # Add a horizontal line for the stable potential (-70 mV)
+    axs[1].axhline(
+        y=-70.0, 
+        color='black', 
+        linestyle='-', 
+        linewidth=1, 
+        alpha=1.0, 
+        label='Stable Potential (-70 mV)'
+    )
+
+    # Add a horizontal dotted line for the threshold (-55 mV)
+    axs[1].axhline(
+        y=-55.0, 
+        color='black', 
+        linestyle='--', 
+        linewidth=1, 
+        alpha=1.0, 
+        label='Threshold (-55 mV)'
+    )
     plt.tight_layout()
     plt.show()
 
@@ -427,8 +467,46 @@ def simulatePoisson(display_graph=True):
         plt.tight_layout()
         plt.show()
 
+def calculateFrequency(n_neurons, strength, neuron_frequency):
+
+    return 0
+
+def worker(frequencies_list, n_neurons, strength, neuron_frequency):
+    frequencies = []
+    for n in range(len(n_neurons)):
+        frequencies.append(calculateFrequency(n, strength, neuron_frequency))
+    frequencies_list = frequencies_list + frequencies
+
+def fullsim():
+    T = 10000
+    dt = 1.0
+    num_of_sim_neurons = np.arange(1, 250, 1)
+    done = 0
+    threads_data = []
+    strengths = np.arange(0.5, 5.5, 0.5)
+    num_of_threads = len(strengths)
+    frequencies_list = [[] for _ in range(num_of_threads)]
+    threads = []
+    
+    # Devide the workload
+    for thread in range(num_of_threads):
+        threads_data[thread] = strengths
+
+    # Run the threads
+    for thread in range(num_of_threads):
+        print("Starting thread " + str(thread) + "...")
+        threads.append(threading.Thread(target=worker, args=(frequencies_list[thread], num_of_sim_neurons, threads_data[thread])))
+        threads[thread].start()
+
+    # Wait for the threads to finish
+    while (done < num_of_threads):
+        for thread in range(num_of_threads):
+            threads[thread].join()
+
+
 if __name__ == "__main__":
-    np.random.seed(2024)
+    # np.random.seed(2024)
+    full_sim = True
     simulate_constant = False
     simulate_poisson = False
     display_graph = False
@@ -439,7 +517,10 @@ if __name__ == "__main__":
     T = 100  # Total simulation time (ms)
     dt = 0.1  # Time step (ms)
 
-    run_multiple_simulations = True
-    
+    run_multiple_simulations = False
+    run_single_simulation = False
+
     if run_multiple_simulations: simulateMultipleOptions(verbose=False, display_graphs=display_graph, T=T, dt=dt)
-    else : simulateSingleOption(display_graph=display_graph, T=T, dt=dt)
+    if run_single_simulation : simulateSingleOption(display_graph=display_graph, T=T, dt=dt)
+
+    if full_sim: fullsim()
