@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import utils
 import threading
-import curses
 import time
 
 class IntegrateAndFireNeuron:
@@ -470,55 +469,94 @@ def simulatePoisson(display_graph=True):
         plt.show()
 
 def calculateFrequency(n_neurons, strength, neuron_frequency, T, dt):
-    time.sleep(0.1)
-    return 0
 
-def worker(stdscr, line, frequencies_list, n_neurons, strength, neuron_frequency, T, dt):
-    frequencies = []
-    done = 0
+    # Simulated neuron parameters
+    input_inhibitory = [poisson_neuron(neuron_frequency, T) for _ in range(n_neurons)]
+    input_excitatory = [poisson_neuron(neuron_frequency, T) for _ in range(n_neurons)]
+    # input_sum = [input_excitatory[i] + input_inhibitory[i] for i in range(n_neurons)]
+
+    time = np.arange(0, T, dt)  # Time array
+    neuron = IntegrateAndFireNeuron()
+    spikes = 0
+
+    # input_sum = np.array([0.0 for _ in range(len(time))])
+    # for t in time:
+    #     input_sum[int(t)] = sum([input_excitatory[i][int(t)] + input_inhibitory[i][int(t)] for i in range(n_neurons)])
+
+
+    input_sum = np.array([0.0 for _ in range(len(time))])
+
+    for i in input_inhibitory:
+        for spike in i:
+            input_sum[int(spike)] -= strength
+    for i in input_excitatory:
+        for spike in i:
+            input_sum[int(spike)] + strength
+
+    for t_step in range(len(time)):
+        RI = input_sum[t_step]
+        current_voltage = neuron.step(RI, dt)
+        if current_voltage == 20.0:
+            spikes += 1
+
+    return spikes / T * 1000 # Hz
+
+def worker(threads, frequencies_list, n_neurons, strength, neuron_frequency, T, dt):
+    global shared_i
+    global lock
     for n in n_neurons:
-        # print(f"Calculating neuron {n} of {n_neurons} with strength {strength}...")
-        stdscr.addstr(line, 0, f"{done}/{len(n)}")
-        frequencies.append(calculateFrequency(n, strength, neuron_frequency, T, dt))
-        stdscr.refresh()
-        done += 1
-    frequencies_list = frequencies_list + frequencies
+        with lock:
+            shared_i += 1
+            print(f"    {shared_i}/{threads*len(n_neurons)}", end='\r')
+        frequency = calculateFrequency(n, strength, neuron_frequency, T, dt)
+        print(frequency)
+        frequencies_list.append(frequency)
 
-def fullsim(stdscr):
-    curses.curs_set(0)
+def fullsim():
 
-    T = 10000
+    T = 100
     dt = 1.0
     # num_of_sim_neurons = np.arange(1, 251, 1)
-    num_of_sim_neurons = np.arange(1, 100, 1)
+    num_of_sim_neurons = np.arange(1, 10, 1)
     neuron_frequency = 10
     strengths = np.arange(0.5, 5.5, 0.5)
     num_of_threads = len(strengths)
     threads_data = []
     frequencies_list = [[] for _ in range(num_of_threads)]
     threads = []
-    # Devide the workload
-    try:
-        for thread in range(num_of_threads-1):
-            threads_data.append(strengths[thread])
+    for thread in range(num_of_threads):
+        threads_data.append(strengths[thread])
 
-        # Run the threads
-        for thread in range(num_of_threads-1):
-            stdscr.addstr(0, 0, f"Starting thread {thread}...")
-            threads.append(threading.Thread(target=worker, args=(stdscr, thread, frequencies_list[thread], num_of_sim_neurons, threads_data[thread], neuron_frequency, T, dt)))
-            threads[thread].start()
+    start_time = time.time()
 
-        # Wait for the threads to finish
-        for thread in range(num_of_threads-1):
-            threads[thread].join()
+    # Run the threads
+    for thread in range(num_of_threads):
+        threads.append(threading.Thread(target=worker, args=(num_of_threads, frequencies_list[thread], num_of_sim_neurons, threads_data[thread], neuron_frequency, T, dt)))
+        threads[thread].start()
 
-    finally:
-        curses.endwin()
+    # Wait for the threads to finish
+    for thread in range(num_of_threads):
+        threads[thread].join()
+
+    print("Done in time: " + str(round(time.time() - start_time, 2)) + "s")
+
+    # Plot the results from the frequencies list
+    plt.figure(figsize=(12, 4))
+    for thread in range(num_of_threads):
+        plt.plot(num_of_sim_neurons, frequencies_list[thread], label="Strength: " + str(threads_data[thread]))
+    plt.ylabel("Frequency (Hz)")
+    plt.xlabel("Number of neurons")
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
 
 
 if __name__ == "__main__":
-    # curses.wrapper(fullsim)
+    shared_i = 0
+    lock = threading.Lock()
+    
     # np.random.seed(2024)
+
     full_sim = True
     simulate_constant = False
     simulate_poisson = False
@@ -536,5 +574,4 @@ if __name__ == "__main__":
     if run_multiple_simulations: simulateMultipleOptions(verbose=False, display_graphs=display_graph, T=T, dt=dt)
     if run_single_simulation : simulateSingleOption(display_graph=display_graph, T=T, dt=dt)
 
-    if full_sim: curses.wrapper(fullsim)
-    # if full_sim: fullsim()
+    if full_sim: fullsim()
