@@ -469,49 +469,54 @@ def simulatePoisson(display_graph=True):
         plt.tight_layout()
         plt.show()
 
-def calculateFrequency(n_neurons, strength, neuron_frequency):
-    time.sleep(1)
+def calculateFrequency(n_neurons, strength, neuron_frequency, T, dt):
+    time.sleep(0.1)
     return 0
 
 def worker(stdscr, line, frequencies_list, n_neurons, strength, neuron_frequency, T, dt):
     frequencies = []
     done = 0
-    for n in range(1, len(n_neurons)+1):
-        stdscr.addstr(line, 0, f"{done}/{n_neurons}")
+    for n in n_neurons:
+        # print(f"Calculating neuron {n} of {n_neurons} with strength {strength}...")
+        stdscr.addstr(line, 0, f"{done}/{len(n)}")
+        frequencies.append(calculateFrequency(n, strength, neuron_frequency, T, dt))
         stdscr.refresh()
-        frequencies.append(calculateFrequency(n, strength, neuron_frequency))
+        done += 1
     frequencies_list = frequencies_list + frequencies
 
 def fullsim(stdscr):
-    print("Hello")
     curses.curs_set(0)
+
     T = 10000
     dt = 1.0
-    num_of_sim_neurons = np.arange(1, 250, 1)
-    done = 0
+    # num_of_sim_neurons = np.arange(1, 251, 1)
+    num_of_sim_neurons = np.arange(1, 100, 1)
+    neuron_frequency = 10
     strengths = np.arange(0.5, 5.5, 0.5)
     num_of_threads = len(strengths)
     threads_data = []
     frequencies_list = [[] for _ in range(num_of_threads)]
     threads = []
-
     # Devide the workload
-    for thread in range(num_of_threads-1):
-        threads_data.append(strengths[thread])
+    try:
+        for thread in range(num_of_threads-1):
+            threads_data.append(strengths[thread])
 
-    # Run the threads
-    for thread in range(num_of_threads-1):
-        print("Starting thread " + str(thread) + "...")
-        threads.append(threading.Thread(target=worker, args=(stdscr, thread, frequencies_list[thread], num_of_sim_neurons, threads_data[thread], T, dt)))
-        threads[thread].start()
+        # Run the threads
+        for thread in range(num_of_threads-1):
+            stdscr.addstr(0, 0, f"Starting thread {thread}...")
+            threads.append(threading.Thread(target=worker, args=(stdscr, thread, frequencies_list[thread], num_of_sim_neurons, threads_data[thread], neuron_frequency, T, dt)))
+            threads[thread].start()
 
-    # Wait for the threads to finish
-    for thread in range(num_of_threads-1):
-        threads[thread].join()
+        # Wait for the threads to finish
+        for thread in range(num_of_threads-1):
+            threads[thread].join()
+
+    finally:
+        curses.endwin()
 
 
 if __name__ == "__main__":
-    print("Hellow")
     # curses.wrapper(fullsim)
     # np.random.seed(2024)
     full_sim = True
@@ -532,3 +537,4 @@ if __name__ == "__main__":
     if run_single_simulation : simulateSingleOption(display_graph=display_graph, T=T, dt=dt)
 
     if full_sim: curses.wrapper(fullsim)
+    # if full_sim: fullsim()
