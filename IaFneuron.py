@@ -4,6 +4,7 @@ import seaborn as sns
 import utils
 import threading
 import time
+from multiprocessing import Pool, Value, Manager, Process
 
 class IntegrateAndFireNeuron:
     def __init__(self, threshold=-55.0, tau=10.0, R=1.0, E=-70.0, absolut_refractory_period=1.0, relative_refractory_period=4.0, reset_voltage=-80.0):
@@ -479,11 +480,6 @@ def calculateFrequency(n_neurons, strength, neuron_frequency, T, dt):
     neuron = IntegrateAndFireNeuron()
     spikes = 0
 
-    # input_sum = np.array([0.0 for _ in range(len(time))])
-    # for t in time:
-    #     input_sum[int(t)] = sum([input_excitatory[i][int(t)] + input_inhibitory[i][int(t)] for i in range(n_neurons)])
-
-
     input_sum = np.array([0.0 for _ in range(len(time))])
 
     for i in input_inhibitory:
@@ -491,8 +487,7 @@ def calculateFrequency(n_neurons, strength, neuron_frequency, T, dt):
             input_sum[int(spike)] -= strength
     for i in input_excitatory:
         for spike in i:
-            input_sum[int(spike)] + strength
-
+            input_sum[int(spike)] += strength
     for t_step in range(len(time)):
         RI = input_sum[t_step]
         current_voltage = neuron.step(RI, dt)
@@ -501,42 +496,44 @@ def calculateFrequency(n_neurons, strength, neuron_frequency, T, dt):
 
     return spikes / T * 1000 # Hz
 
-def worker(threads, frequencies_list, n_neurons, strength, neuron_frequency, T, dt):
-    global shared_i
-    global lock
+def worker(shared_i, lock, threads, frequencies_list, n_neurons, strength, neuron_frequency, T, dt):
+    
     for n in n_neurons:
         with lock:
-            shared_i += 1
-            print(f"    {shared_i}/{threads*len(n_neurons)}", end='\r')
+            shared_i.value += 1
+            print(f"    {shared_i.value}/{threads*len(n_neurons)}", end='\r')
         frequency = calculateFrequency(n, strength, neuron_frequency, T, dt)
-        print(frequency)
         frequencies_list.append(frequency)
 
 def fullsim():
 
-    T = 100
+    T = 2500
     dt = 1.0
-    # num_of_sim_neurons = np.arange(1, 251, 1)
-    num_of_sim_neurons = np.arange(1, 10, 1)
+    num_of_sim_neurons = np.arange(1, 251, 1)
     neuron_frequency = 10
     strengths = np.arange(0.5, 5.5, 0.5)
     num_of_threads = len(strengths)
     threads_data = []
-    frequencies_list = [[] for _ in range(num_of_threads)]
+    
     threads = []
     for thread in range(num_of_threads):
         threads_data.append(strengths[thread])
 
     start_time = time.time()
 
-    # Run the threads
-    for thread in range(num_of_threads):
-        threads.append(threading.Thread(target=worker, args=(num_of_threads, frequencies_list[thread], num_of_sim_neurons, threads_data[thread], neuron_frequency, T, dt)))
-        threads[thread].start()
+    manager = Manager()
+    frequencies_list = manager.list([manager.list() for _ in range(num_of_threads)])  # Shared list
+    shared_i = Value('i', 0)  # Shared counter
+    lock = manager.Lock()  # Shared lock
 
-    # Wait for the threads to finish
+    processes = []
     for thread in range(num_of_threads):
-        threads[thread].join()
+        p = Process(target=worker, args=(shared_i, lock, num_of_threads, frequencies_list[thread], num_of_sim_neurons, strengths[thread], neuron_frequency, T, dt))
+        processes.append(p)
+        p.start()
+
+    for p in processes:
+        p.join()
 
     print("Done in time: " + str(round(time.time() - start_time, 2)) + "s")
 
