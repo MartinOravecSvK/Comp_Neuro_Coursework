@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import utils
 import threading
+import curses
+import time
 
 class IntegrateAndFireNeuron:
     def __init__(self, threshold=-55.0, tau=10.0, R=1.0, E=-70.0, absolut_refractory_period=1.0, relative_refractory_period=4.0, reset_voltage=-80.0):
@@ -468,43 +470,49 @@ def simulatePoisson(display_graph=True):
         plt.show()
 
 def calculateFrequency(n_neurons, strength, neuron_frequency):
-
+    time.sleep(1)
     return 0
 
-def worker(frequencies_list, n_neurons, strength, neuron_frequency):
+def worker(stdscr, line, frequencies_list, n_neurons, strength, neuron_frequency, T, dt):
     frequencies = []
-    for n in range(len(n_neurons)):
+    done = 0
+    for n in range(1, len(n_neurons)+1):
+        stdscr.addstr(line, 0, f"{done}/{n_neurons}")
+        stdscr.refresh()
         frequencies.append(calculateFrequency(n, strength, neuron_frequency))
     frequencies_list = frequencies_list + frequencies
 
-def fullsim():
+def fullsim(stdscr):
+    print("Hello")
+    curses.curs_set(0)
     T = 10000
     dt = 1.0
     num_of_sim_neurons = np.arange(1, 250, 1)
     done = 0
-    threads_data = []
     strengths = np.arange(0.5, 5.5, 0.5)
     num_of_threads = len(strengths)
+    threads_data = []
     frequencies_list = [[] for _ in range(num_of_threads)]
     threads = []
-    
+
     # Devide the workload
-    for thread in range(num_of_threads):
-        threads_data[thread] = strengths
+    for thread in range(num_of_threads-1):
+        threads_data.append(strengths[thread])
 
     # Run the threads
-    for thread in range(num_of_threads):
+    for thread in range(num_of_threads-1):
         print("Starting thread " + str(thread) + "...")
-        threads.append(threading.Thread(target=worker, args=(frequencies_list[thread], num_of_sim_neurons, threads_data[thread])))
+        threads.append(threading.Thread(target=worker, args=(stdscr, thread, frequencies_list[thread], num_of_sim_neurons, threads_data[thread], T, dt)))
         threads[thread].start()
 
     # Wait for the threads to finish
-    while (done < num_of_threads):
-        for thread in range(num_of_threads):
-            threads[thread].join()
+    for thread in range(num_of_threads-1):
+        threads[thread].join()
 
 
 if __name__ == "__main__":
+    print("Hellow")
+    # curses.wrapper(fullsim)
     # np.random.seed(2024)
     full_sim = True
     simulate_constant = False
@@ -523,4 +531,4 @@ if __name__ == "__main__":
     if run_multiple_simulations: simulateMultipleOptions(verbose=False, display_graphs=display_graph, T=T, dt=dt)
     if run_single_simulation : simulateSingleOption(display_graph=display_graph, T=T, dt=dt)
 
-    if full_sim: fullsim()
+    if full_sim: curses.wrapper(fullsim)
