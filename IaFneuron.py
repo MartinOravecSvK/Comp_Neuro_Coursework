@@ -56,9 +56,11 @@ class IntegrateAndFireNeuron:
     def getTimeElapsed(self):
         return self.timeElapsed
 
-def poisson_neuron(firing_rate, duration, refractory_period=0, strength=6.0):
+def poisson_neuron(firing_rate, duration, refractory_period=0):
+    # Maybe CHange Refractory period and then get the timings with rounded accuracy given by dt
     current_time = 0
     spike_times = []
+    adjusted_firing_rate = 1000 / firing_rate
 
     while current_time < duration:
         # If a refractory period is set and there was a previous spike, add the refractory period to the current time.
@@ -66,13 +68,32 @@ def poisson_neuron(firing_rate, duration, refractory_period=0, strength=6.0):
             current_time += refractory_period
 
         # Draw the next spike time from an exponential distribution
-        next_spike = np.random.exponential(1 / firing_rate)
+        next_spike = np.random.exponential(adjusted_firing_rate)
         current_time += next_spike
 
         # Record the spike time if it's within the duration
-        if current_time < duration:
+        if current_time <= duration:
             spike_times.append(current_time)
 
+    return np.array(spike_times)
+
+def poisson_neuronV2(firing_rate, duration, strength, n=1, refractory_period=0, dt=1.0):
+    adjusted_firing_rate = 1 / firing_rate
+    adjusted_time = dt
+    adjusted_dt = 0
+    while adjusted_firing_rate < 1:
+        adjusted_time *= 10
+        adjusted_dt += 1
+    for neuron in range(n):
+        current_time = 0
+        spike_times = {}
+        while current_time < duration:
+            if refractory_period > 0 and spike_times:
+                current_time += refractory_period
+            # Round the next spike time to the nearest dt step
+            current_time += np.random.exponential(adjusted_firing_rate)
+            if current_time < duration:
+                spike_times[round(current_time, adjusted_dt)] += strength
     return np.array(spike_times)
 
 def simulateConstant():
@@ -474,7 +495,6 @@ def calculateFrequency(n_neurons, strength, neuron_frequency, T, dt):
     # Simulated neuron parameters
     input_inhibitory = [poisson_neuron(neuron_frequency, T) for _ in range(n_neurons)]
     input_excitatory = [poisson_neuron(neuron_frequency, T) for _ in range(n_neurons)]
-    # input_sum = [input_excitatory[i] + input_inhibitory[i] for i in range(n_neurons)]
 
     time = np.arange(0, T, dt)  # Time array
     neuron = IntegrateAndFireNeuron()
@@ -488,6 +508,33 @@ def calculateFrequency(n_neurons, strength, neuron_frequency, T, dt):
     for i in input_excitatory:
         for spike in i:
             input_sum[int(spike)] += strength
+
+    for t_step in range(len(time)):
+        RI = input_sum[t_step]
+        current_voltage = neuron.step(RI, dt)
+        if current_voltage == 20.0:
+            spikes += 1
+
+    return spikes / T * 1000 # Hz
+
+def calculateFrequencyOptimised(strength, input_inhibitory, input_excitatory, T, dt):
+
+    # # Simulated neuron parameters
+    # input_inhibitory = [poisson_neuron(neuron_frequency, T) for _ in range(n_neurons)]
+    # input_excitatory = [poisson_neuron(neuron_frequency, T) for _ in range(n_neurons)]
+
+    time = np.arange(0, T, dt)  # Time array
+    neuron = IntegrateAndFireNeuron()
+    spikes = 0
+    input_sum = np.array([0.0 for _ in range(len(time))])
+
+    for i in input_inhibitory:
+        for spike in i:
+            input_sum[int(round(spike, 2)*100)] -= strength
+    for i in input_excitatory:
+        for spike in i:
+            input_sum[int(round(spike, 2)*100)] += strength
+
     for t_step in range(len(time)):
         RI = input_sum[t_step]
         current_voltage = neuron.step(RI, dt)
@@ -498,24 +545,30 @@ def calculateFrequency(n_neurons, strength, neuron_frequency, T, dt):
 
 def worker(shared_i, lock, threads, frequencies_list, n_neurons, strength, neuron_frequency, T, dt):
     
+    # Simulated neuron parameters
+    print("Calculating poisson procces input neurons spikes for " + str(max(n_neurons)) + " neurons")
+    input_inhibitory = [poisson_neuron(neuron_frequency, T-dt) for _ in range(max(n_neurons))]
+    input_excitatory = [poisson_neuron(neuron_frequency, T-dt) for _ in range(max(n_neurons))]
+
     for n in n_neurons:
+        input_inhibitory_part = input_inhibitory[:n]
+        input_excitatory_part = input_excitatory[:n]
         with lock:
             shared_i.value += 1
             print(f"    {shared_i.value}/{threads*len(n_neurons)}", end='\r')
-        frequency = calculateFrequency(n, strength, neuron_frequency, T, dt)
+        frequency = calculateFrequencyOptimised(strength, input_inhibitory_part, input_excitatory_part, T, dt)
         frequencies_list.append(frequency)
 
 def fullsim():
 
-    T = 2500
-    dt = 1.0
-    num_of_sim_neurons = np.arange(1, 251, 1)
+    T = 100
+    dt = 0.01
+    num_of_sim_neurons = np.arange(1, 251, 2)
     neuron_frequency = 10
-    strengths = np.arange(0.5, 5.5, 0.5)
+    strengths = np.arange(1.0, 8.1, 1.0)
     num_of_threads = len(strengths)
     threads_data = []
     
-    threads = []
     for thread in range(num_of_threads):
         threads_data.append(strengths[thread])
 
@@ -535,7 +588,7 @@ def fullsim():
     for p in processes:
         p.join()
 
-    print("Done in time: " + str(round(time.time() - start_time, 2)) + "s")
+    print("Done in time: " + str(round(time.time() - start_time, 2)) + "s or " + str(round((time.time() - start_time) / 60, 2)) + "m")
 
     # Plot the results from the frequencies list
     plt.figure(figsize=(12, 4))
@@ -554,21 +607,21 @@ if __name__ == "__main__":
     
     # np.random.seed(2024)
 
-    full_sim = True
     simulate_constant = False
     simulate_poisson = False
-    display_graph = False
+    display_graph = True
 
     if simulate_constant: simulateConstant()
     if simulate_poisson: simulatePoisson(display_graph=display_graph)
 
-    T = 100  # Total simulation time (ms)
-    dt = 0.1  # Time step (ms)
+    T = 10000  # Total simulation time (ms)
+    dt = 0.01  # Time step (ms)
 
     run_multiple_simulations = False
-    run_single_simulation = False
+    run_single_simulation = True
 
     if run_multiple_simulations: simulateMultipleOptions(verbose=False, display_graphs=display_graph, T=T, dt=dt)
     if run_single_simulation : simulateSingleOption(display_graph=display_graph, T=T, dt=dt)
 
+    full_sim = False
     if full_sim: fullsim()
