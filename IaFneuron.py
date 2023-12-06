@@ -607,7 +607,7 @@ if __name__ == "__main__":
     
     # np.random.seed(2024)
 
-    simulate_constant = False
+    simulate_constant = True
     simulate_poisson = False
     display_graph = True
 
@@ -618,7 +618,7 @@ if __name__ == "__main__":
     dt = 0.01  # Time step (ms)
 
     run_multiple_simulations = False
-    run_single_simulation = True
+    run_single_simulation = False
 
     if run_multiple_simulations: simulateMultipleOptions(verbose=False, display_graphs=display_graph, T=T, dt=dt)
     if run_single_simulation : simulateSingleOption(display_graph=display_graph, T=T, dt=dt)

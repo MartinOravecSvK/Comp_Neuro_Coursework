@@ -1,17 +1,6 @@
 import numpy as np
 
 def calculate_fano_factor(spike_times, window_sizes, duration):
-    """
-    Calculate the Fano factor of the spike count over different window sizes.
-
-    Parameters:
-    spike_times (np.array): Times of spikes.
-    window_sizes (list): List of window sizes in seconds.
-    duration (float): Duration of spike train in seconds.
-
-    Returns:
-    dict: Fano factors for each window size.
-    """
     fano_factors = {}
     for window in window_sizes:
         num_windows = int(duration / window)
@@ -23,15 +12,6 @@ def calculate_fano_factor(spike_times, window_sizes, duration):
     return fano_factors
 
 def calculate_coefficient_of_variation(spike_times):
-    """
-    Calculate the coefficient of variation of the inter-spike intervals.
-
-    Parameters:
-    spike_times (np.array): Times of spikes.
-
-    Returns:
-    float: Coefficient of variation.
-    """
     if len(spike_times) < 2:
         return float('nan')
     
