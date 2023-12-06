@@ -136,11 +136,14 @@ def worker(p_n, p_i, input_neuron_strength, input_exci_neuron_num_range, input_i
 def fullsim1(T, dt, input_neuron_freq):
 
     # Parameters
-    input_exci_neuron_num_range = np.arange(10, 2002, 2) # nnumber of excitatory neurons simulated by a poisson process
-    input_inhi_neuron_num_range = np.arange(10, 2002, 2) # nnumber of inhibitory neurons simulated by a poisson process
+    input_exci_neuron_num_range = np.arange(1, 2002, 1) # nnumber of excitatory neurons simulated by a poisson process
+    input_inhi_neuron_num_range = np.arange(1, 2002, 1) # nnumber of inhibitory neurons simulated by a poisson process
     input_neuron_strength_range = np.arange(0.5, 5.1, 0.5) # mV
     input_neuron_freq = 35 # Hz
-    
+
+    full_freq_list = [[] for _ in range(len(input_neuron_strength_range))]
+    full_sim_n = 3
+
     # Proccessing parameters
     manager = Manager()
     frequencies_list = manager.list([manager.list() for _ in range(len(input_neuron_strength_range))])  # Shared list
@@ -149,39 +152,54 @@ def fullsim1(T, dt, input_neuron_freq):
     start_time = time.time()  # Start time
     processes = []  # List of processes
 
-    # Distribute the work across threads
-    for process_i in range(len(input_neuron_strength_range)):
-        p = Process(target=worker, args=(
-            len(input_neuron_strength_range),
-            process_i,
-            input_neuron_strength_range[process_i],
-            input_exci_neuron_num_range,
-            input_inhi_neuron_num_range,
-            input_neuron_freq,
-            T,
-            dt,
-            shared_i,
-            lock,
-            frequencies_list,
-        ))
-        processes.append(p)
-        p.start()
+    for sim_i in range(full_sim_n):
+        print("Simulation " + str(sim_i+1) + " of " + str(full_sim_n))
+        # Distribute the work across threads
+        for process_i in range(len(input_neuron_strength_range)):
+            p = Process(target=worker, args=(
+                len(input_neuron_strength_range),
+                process_i,
+                input_neuron_strength_range[process_i],
+                input_exci_neuron_num_range,
+                input_inhi_neuron_num_range,
+                input_neuron_freq,
+                T,
+                dt,
+                shared_i,
+                lock,
+                frequencies_list,
+            ))
+            processes.append(p)
+            p.start()
 
-    for p in processes:
-        p.join()
+        for p in processes:
+            p.join()
+
+        # Initialise full freq list
+        if (sim_i == 0):
+            for i in range(len(input_neuron_strength_range)):
+                full_freq_list[i] = frequencies_list[i][:]
+        # If already initialised add the new values to the full freq list
+        else:
+            for i in range(len(input_neuron_strength_range)):
+                for j in range(len(input_exci_neuron_num_range)):
+                    full_freq_list[i][j] += frequencies_list[i][j]
+    
+    # Divide the full freq list by the number of simulations
+    for i in range(len(input_neuron_strength_range)):
+        for j in range(len(input_exci_neuron_num_range)):
+            full_freq_list[i][j] /= full_sim_n
+
 
     print("Done in time: " + str(round(time.time() - start_time, 2)) + "s or " + str(round((time.time() - start_time) / 60, 2)) + "m")
 
     # Set plot colors
-    colors = sns.cubehelix_palette(22, start=0.5, rot=-1.50)
+    colors = sns.cubehelix_palette(len(input_neuron_strength_range), start=0.5, rot=-.75)
 
     # Plot the results from the frequencies list
     plt.figure(figsize=(12, 4))
-    # for process_i in range(len(input_neuron_strength_range)):
-    #     plt.plot(input_exci_neuron_num_range, frequencies_list[process_i], label="Strength: " + str(round(input_neuron_strength_range[process_i], 1)) + " mV")
-    
     plt.stackplot(input_exci_neuron_num_range, 
-                  frequencies_list, 
+                  full_freq_list, 
                   labels=[str(round(input_neuron_strength_range[i], 1)) + " mV" for i in range(len(input_neuron_strength_range))], 
                   colors=colors
     )
