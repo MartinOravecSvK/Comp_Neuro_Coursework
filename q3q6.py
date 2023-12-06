@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import utils
 import time
+from sklearn.linear_model import LinearRegression
 from multiprocessing import Value, Manager, Process
 
 class IntegrateAndFireNeuron:
@@ -113,7 +114,7 @@ def simulate(input_strength, inhi_input, exci_input, T, dt):
 
 def worker(p_n, p_i, input_neuron_strength, input_exci_neuron_num_range, input_inhi_neuron_num_range, input_neuron_freq, T, dt, shared_i, lock, frequencies_list):
 
-    print("Calculating poisson procces input neurons spikes for " + str(len(input_exci_neuron_num_range)) + " neurons")
+    # print("Calculating poisson procces input neurons spikes for " + str(len(input_exci_neuron_num_range)) + " neurons")
     input_inhibitory = [poisson_neuron(input_neuron_freq, T-dt) for _ in range(max(input_inhi_neuron_num_range))]
     input_excitatory = [poisson_neuron(input_neuron_freq, T-dt) for _ in range(max(input_exci_neuron_num_range))]
 
@@ -142,7 +143,7 @@ def fullsim1(T, dt, input_neuron_freq):
     input_neuron_freq = 35 # Hz
 
     full_freq_list = [[] for _ in range(len(input_neuron_strength_range))]
-    full_sim_n = 3
+    full_sim_n = 1
 
     # Proccessing parameters
     manager = Manager()
@@ -153,7 +154,7 @@ def fullsim1(T, dt, input_neuron_freq):
     processes = []  # List of processes
 
     for sim_i in range(full_sim_n):
-        print("Simulation " + str(sim_i+1) + " of " + str(full_sim_n))
+        print("   Simulation " + str(sim_i+1) + " of " + str(full_sim_n))
         # Distribute the work across threads
         for process_i in range(len(input_neuron_strength_range)):
             p = Process(target=worker, args=(
@@ -184,12 +185,24 @@ def fullsim1(T, dt, input_neuron_freq):
             for i in range(len(input_neuron_strength_range)):
                 for j in range(len(input_exci_neuron_num_range)):
                     full_freq_list[i][j] += frequencies_list[i][j]
-    
+        
+        # Reset the frequencies list
+        frequencies_list = manager.list([manager.list() for _ in range(len(input_neuron_strength_range))])
+        shared_i.value = 0
+        processes = []
+
     # Divide the full freq list by the number of simulations
     for i in range(len(input_neuron_strength_range)):
         for j in range(len(input_exci_neuron_num_range)):
             full_freq_list[i][j] /= full_sim_n
 
+    predictions = []
+    for i in range(len(input_neuron_strength_range)):
+        model = LinearRegression()
+        model.fit(np.array(input_exci_neuron_num_range).reshape(-1, 1), np.array(full_freq_list[i]).reshape(-1, 1))
+        pred = model.predict(np.array(input_exci_neuron_num_range).reshape(-1, 1))
+        predictions.append(pred[:, 0])
+        print("Predicted function for " + str(input_neuron_strength_range[i]) + " mV: " + str(round(model.coef_[0][0], 2)) + " * x  +  " + str(round(model.intercept_[0], 2)))
 
     print("Done in time: " + str(round(time.time() - start_time, 2)) + "s or " + str(round((time.time() - start_time) / 60, 2)) + "m")
 
@@ -203,6 +216,12 @@ def fullsim1(T, dt, input_neuron_freq):
                   labels=[str(round(input_neuron_strength_range[i], 1)) + " mV" for i in range(len(input_neuron_strength_range))], 
                   colors=colors
     )
+    for i in range(len(input_neuron_strength_range)):
+        plt.plot(input_exci_neuron_num_range, 
+                 predictions[i], 
+                 color=colors[i], 
+                 linestyle='-')
+
 
     # Define axes limits
     plt.xlim([10, 2000])
