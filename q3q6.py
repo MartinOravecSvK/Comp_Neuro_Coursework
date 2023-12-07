@@ -197,8 +197,9 @@ def fullsim1(T, dt, input_neuron_freq):
                 for j in range(len(input_exci_neuron_num_range)):
                     full_freq_list[i][j] += frequencies_list[i][j]
         
-        # Reset the frequencies list
+        # Reset shared variables
         frequencies_list = manager.list([manager.list() for _ in range(len(input_neuron_strength_range))])
+        spikes_list = manager.list([manager.list() for _ in range(len(input_neuron_strength_range))])
         shared_i.value = 0
         processes = []
 
@@ -206,6 +207,13 @@ def fullsim1(T, dt, input_neuron_freq):
     for i in range(len(input_neuron_strength_range)):
         for j in range(len(input_exci_neuron_num_range)):
             full_freq_list[i][j] /= full_sim_n
+
+    fano_factors = [[] for _ in range(len(input_neuron_strength_range))]
+    coefficient_of_variations = [[] for _ in range(len(input_neuron_strength_range))]
+    for i in range(len(input_neuron_strength_range)):
+        for j in range(len(input_exci_neuron_num_range)):
+            fano_factors[i].append(utils.calculate_fano_factor(spikes_list[i][j], [0.01, 0.05, 0.1], T))
+            coefficient_of_variations[i].append(utils.calculate_coefficient_of_variation(spikes_list[i][j]))
 
     # degree = 3
     # model = make_pipeline(PolynomialFeatures(degree), LinearRegression())
@@ -247,9 +255,33 @@ def fullsim1(T, dt, input_neuron_freq):
     plt.tight_layout()
     plt.show()
 
-    # Plot the results from the spikes list
+    # Plot the fano factors and coefficient of variations
+    plt.figure(figsize=(12, 4))
+    plt.subplot(1, 2, 1)
+    plt.stackplot(input_exci_neuron_num_range, 
+                  fano_factors, 
+                  labels=[str(round(input_neuron_strength_range[i], 1)) + " mV" for i in range(len(input_neuron_strength_range))], 
+                  colors=colors,
+                #   alpha=0.7,
+    )
+    plt.xlim([10, 2000])
+    plt.ylabel("Fano factor")
+    plt.xlabel("Number of simulated input neurons")
+    plt.legend()
+    plt.subplot(1, 2, 2)
+    plt.stackplot(input_exci_neuron_num_range, 
+                  coefficient_of_variations, 
+                  labels=[str(round(input_neuron_strength_range[i], 1)) + " mV" for i in range(len(input_neuron_strength_range))], 
+                  colors=colors,
+                #   alpha=0.7,
+    )
+    plt.xlim([10, 2000])
+    plt.ylabel("Coefficient of variation")
+    plt.xlabel("Number of simulated input neurons")
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
 
-    return
 
 if __name__=="__main__":
     # np.random.seed(0)
