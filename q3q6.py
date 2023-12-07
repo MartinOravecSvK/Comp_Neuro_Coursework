@@ -8,6 +8,7 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import make_pipeline, Pipeline
 from sklearn.preprocessing import MinMaxScaler
 from multiprocessing import Value, Manager, Process
+import q5
 
 class IntegrateAndFireNeuron:
     def __init__(self, 
@@ -17,45 +18,24 @@ class IntegrateAndFireNeuron:
                  E=-70.0, 
                  absolut_refractory_period=1.0, 
                  relative_refractory_period=4.0, 
-                 reset_voltage=-80.0):
+                 reset_voltage=-80.0,
+                 spikeVol=20.0,):
         self.threshold = threshold  # Spike threshold
         self.tau = tau  # Membrane time constant
         self.R = R  # Membrane resistance
         self.V = -70.0  # Membrane potential
         self.E = E  # Resting potential
-        self.spikeVol = 20.0 # Spike value
+        self.spikeVol = spikeVol # Spike value
         self.restVol = -70.0 # Reset value
         self.resetVol = reset_voltage # Reset voltage
         self.timeElapsed = 0.0 # Time elapsed
         self.arf = absolut_refractory_period # Refractory period
         self.rrf =  relative_refractory_period # Refractory period
         self.spikes = []
+        self.last_spike_time = -float('inf')  # Initialize last spike time
+        self.previous_RI = None
 
     def step(self, RI, dt):
-        """
-        Update the membrane potential based on the input current
-        and time step size.
-        """
-        # if (len(self.spikes) > 0 and self.timeElapsed+dt < self.spikes[-1]+self.arf):
-        #     self.timeElapsed += dt
-        #     if (self.V == self.spikeVol):
-        #         self.V = self.resetVol
-        #     return self.V
-        
-        # elif (len(self.spikes) > 0 and self.timeElapsed+dt < self.spikes[-1]+self.rrf):
-        #     self.timeElapsed += dt
-        #     dV = dt / self.tau * (self.E - self.V + RI*0.5)
-        #     self.V += dV
-
-        #     if self.V >= self.threshold:
-        #         self.V = 20.0  # Set membrane potential to 20 mV
-        #         self.spikes.append(self.timeElapsed)
-
-        #     return self.V
-        
-        # elif (self.V == self.resetVol and self.V < self.restVol):
-        #     self.V = self.restVol
-
         self.timeElapsed += dt
 
         if (self.V == self.spikeVol):
@@ -67,6 +47,92 @@ class IntegrateAndFireNeuron:
         if self.V >= self.threshold:
             self.V = 20.0  # Set membrane potential to 20 mV
             self.spikes.append(self.timeElapsed)
+
+        return self.V
+
+    def stepRef(self, RI, dt):
+        self.timeElapsed += dt
+
+        if self.timeElapsed - self.last_spike_time < self.arf:
+            return self.V  # No change in voltage
+
+        # Adjust threshold if in relative refractory period
+        effective_threshold = self.threshold
+        # if self.arf <= self.timeElapsed - self.last_spike_time < self.arf + self.rrf:
+        #     effective_threshold += 20 
+
+        if (self.V == self.spikeVol):
+            self.V = self.restVol
+
+        if self.previous_RI is None:
+            self.previous_RI = RI
+
+        dRI_dt = (RI - self.previous_RI) / dt
+        self.previous_RI = RI
+
+        alpha = -0.001
+        sensitivity_factor = 1.0 + alpha * abs(dRI_dt)
+
+        dV = dt / self.tau * (self.E - self.V + RI)
+        self.V += dV
+
+        self.V = self.V * sensitivity_factor
+        
+        if self.V >= effective_threshold:
+            self.V = 20.0  # Set membrane potential to 20 mV
+            self.spikes.append(self.timeElapsed)
+            self.last_spike_time = self.timeElapsed
+
+        return self.V
+    
+    def stepH1(self, RI, dt):
+        time_since_last_spike = self.timeElapsed - self.last_spike_time
+
+        # Absolute refractory period check
+        if time_since_last_spike < self.arf:
+            return self.V  # No change in voltage due to absolute refractory period
+
+        # Calculate rate of change of input (if previous_RI is not None)
+        if self.previous_RI is not None:
+            dRI_dt = (RI - self.previous_RI) / dt
+        else:
+            dRI_dt = 0  # No change for the first time step
+
+        # Update the previous stimulus input for the next iteration
+        self.previous_RI = RI
+
+        # Adjust the threshold based on the rate of change of the stimulus
+        if dRI_dt < 0:  # Stimulus is decreasing
+            self.threshold -= beta * abs(dRI_dt)  # Decrease threshold more rapidly
+        else:  # Stimulus is not decreasing
+            self.threshold += gamma * dRI_dt  # Increase threshold, but less rapidly
+
+        # Ensure the threshold does not go below a minimum value
+        self.threshold = max(self.threshold, minimum_threshold)
+
+        # Ensure the threshold does not exceed a maximum value
+        self.threshold = min(self.threshold, maximum_threshold)
+
+        # Adjust membrane potential based on the input and decay
+        dV = dt / self.tau * (self.E - self.V + self.R * RI)
+        self.V += dV
+
+        # Check for spike
+        if self.V >= self.threshold:
+            self.spikes.append(self.timeElapsed)
+            self.last_spike_time = self.timeElapsed
+            self.V = self.spikeVol  # Emit spike
+            # Implement the afterhyperpolarization (AHP) phase
+            self.V -= AHP_magnitude  # AHP_magnitude is a constant representing the AHP effect
+
+        # Implement relative refractory period based on AHP
+        if 0 < time_since_last_spike < self.rrf:
+            # The neuron is in the relative refractory period, so it's harder to spike
+            self.V += AHP_magnitude * (time_since_last_spike / self.rrf)  # Gradually return to normal potential
+
+        # Reset the voltage if it's below the resting potential
+        if self.V < self.E:
+            self.V = self.E  # Reset to resting potential
 
         return self.V
 
@@ -113,17 +179,18 @@ def simulate(input_strength, inhi_input, exci_input, T, dt):
         RI = input_values[int(t / dt)] + constant_input
         iaf_neuron.step(RI, dt)
 
-    return len(iaf_neuron.getSpikes()) / (T / 1000), iaf_neuron
+    return len(iaf_neuron.getSpikes()) / (T / 1000), iaf_neuron.getSpikes()
 
-def worker(p_n, p_i, input_neuron_strength, input_exci_neuron_num_range, input_inhi_neuron_num_range, input_neuron_freq, T, dt, shared_i, lock, frequencies_list, spikes_list):
+def worker(p_n, p_i, input_neuron_strength, input_exci_neuron_num_range, input_inhi_neuron_num_range, input_neuron_freq, T, dt, shared_i, lock, frequencies_list, fano_factors, coefficient_of_variations):
 
     # print("Calculating poisson procces input neurons spikes for " + str(len(input_exci_neuron_num_range)) + " neurons")
     input_inhibitory = [poisson_neuron(input_neuron_freq, T-dt) for _ in range(max(input_inhi_neuron_num_range))]
     input_excitatory = [poisson_neuron(input_neuron_freq, T-dt) for _ in range(max(input_exci_neuron_num_range))]
-
-    for n in input_exci_neuron_num_range:
-        inhibitory_input = input_inhibitory[:n]
-        excitatory_input = input_excitatory[:n]
+    i = 0
+    input_range = input_exci_neuron_num_range if max(input_exci_neuron_num_range) > max(input_inhi_neuron_num_range) else input_inhi_neuron_num_range
+    for n in input_range:
+        inhibitory_input = input_inhibitory[:min(n, max(input_inhi_neuron_num_range))]
+        excitatory_input = input_excitatory[:min(n, max(input_exci_neuron_num_range))]
         with lock:
             shared_i.value += 1
             print(f"    {shared_i.value}/{len(input_exci_neuron_num_range)*p_n}", end='\r')
@@ -136,8 +203,10 @@ def worker(p_n, p_i, input_neuron_strength, input_exci_neuron_num_range, input_i
             dt,
         )
         frequencies_list[p_i].append(current_freq)
-        spikes_list[p_i].append(spikes.getSpikes())
-        
+        if i % 8 == 0 and len(spikes) >= 1:
+            # fano_factors[p_i].append([n, utils.calculate_fano_factor(np.asarray(spikes), [0.01, 0.05, 0.1], T)[0.1]])
+            coefficient_of_variations[p_i].append([n, utils.calculate_coefficient_of_variation(spikes)])
+        i += 1        
 
 # Main simualtion function with the same number of excitatory and inhibitory neurons
 def fullsim1(T, dt, input_neuron_freq):
@@ -151,13 +220,11 @@ def fullsim1(T, dt, input_neuron_freq):
     full_freq_list = [[] for _ in range(len(input_neuron_strength_range))]
     full_sim_n = 1
 
-    fano_factors = {}
-    coefficient_of_variations = {}
-
     # Proccessing parameters
     manager = Manager()
     frequencies_list = manager.list([manager.list() for _ in range(len(input_neuron_strength_range))])  # Shared list
-    spikes_list = manager.list([manager.list() for _ in range(len(input_neuron_strength_range))])
+    fano_factors = manager.list([manager.list() for _ in range(len(input_neuron_strength_range))])
+    coefficient_of_variations = manager.list([manager.list() for _ in range(len(input_neuron_strength_range))])
     shared_i = Value('i', 0)  # Shared counter
     lock = manager.Lock()  # Shared lock for the coounter
     start_time = time.time()  # Start time
@@ -179,7 +246,8 @@ def fullsim1(T, dt, input_neuron_freq):
                 shared_i,
                 lock,
                 frequencies_list,
-                spikes_list,
+                fano_factors,
+                coefficient_of_variations,
             ))
             processes.append(p)
             p.start()
@@ -199,7 +267,7 @@ def fullsim1(T, dt, input_neuron_freq):
         
         # Reset shared variables
         frequencies_list = manager.list([manager.list() for _ in range(len(input_neuron_strength_range))])
-        spikes_list = manager.list([manager.list() for _ in range(len(input_neuron_strength_range))])
+        # spikes_list = manager.list([manager.list() for _ in range(len(input_neuron_strength_range))])
         shared_i.value = 0
         processes = []
 
@@ -207,13 +275,6 @@ def fullsim1(T, dt, input_neuron_freq):
     for i in range(len(input_neuron_strength_range)):
         for j in range(len(input_exci_neuron_num_range)):
             full_freq_list[i][j] /= full_sim_n
-
-    fano_factors = [[] for _ in range(len(input_neuron_strength_range))]
-    coefficient_of_variations = [[] for _ in range(len(input_neuron_strength_range))]
-    for i in range(len(input_neuron_strength_range)):
-        for j in range(len(input_exci_neuron_num_range)):
-            fano_factors[i].append(utils.calculate_fano_factor(spikes_list[i][j], [0.01, 0.05, 0.1], T))
-            coefficient_of_variations[i].append(utils.calculate_coefficient_of_variation(spikes_list[i][j]))
 
     # degree = 3
     # model = make_pipeline(PolynomialFeatures(degree), LinearRegression())
@@ -231,7 +292,7 @@ def fullsim1(T, dt, input_neuron_freq):
 
     # Plot the results from the frequencies list
     plt.figure(figsize=(12, 4))
-    plt.stackplot(input_exci_neuron_num_range, 
+    plt.stackplot(np.arange(1, len(full_freq_list[0])+1),
                   full_freq_list, 
                   labels=[str(round(input_neuron_strength_range[i], 1)) + " mV" for i in range(len(input_neuron_strength_range))], 
                   colors=colors,
@@ -243,11 +304,8 @@ def fullsim1(T, dt, input_neuron_freq):
     #              color=colors[i], 
     #              linestyle='-')
 
-    # Define axes limits
     plt.xlim([10, 2000])
-    # plt.ylim([0, 100])
-    
-    # Define axes labels 
+
     plt.ylabel("Firing rate frequency (Hz)")
     plt.xlabel("Number of simulated input neurons")
     
@@ -256,39 +314,158 @@ def fullsim1(T, dt, input_neuron_freq):
     plt.show()
 
     # Plot the fano factors and coefficient of variations
+    # plt.figure(figsize=(12, 4))
+    # for i in range(len(input_neuron_strength_range)):
+    #     plt.plot(np.array(fano_factors[i]).reshape(-1, 2)[:, 0],
+    #              np.array(fano_factors[i]).reshape(-1, 2)[:, 1],
+    #              label=str(round(input_neuron_strength_range[i], 1)) + " mV",
+    #              color=colors[i],)
+    #     # plt.plot(fano_factors[i])
+    # plt.ylabel("Fano Factor")
+    # plt.xlabel("Number of simulated input neurons")
+    # plt.legend()
+    # plt.tight_layout()
+    # plt.show()
+
+    # Plot the coefficient of variations
     plt.figure(figsize=(12, 4))
-    plt.subplot(1, 2, 1)
-    plt.stackplot(input_exci_neuron_num_range, 
-                  fano_factors, 
-                  labels=[str(round(input_neuron_strength_range[i], 1)) + " mV" for i in range(len(input_neuron_strength_range))], 
-                  colors=colors,
-                #   alpha=0.7,
-    )
-    plt.xlim([10, 2000])
-    plt.ylabel("Fano factor")
-    plt.xlabel("Number of simulated input neurons")
-    plt.legend()
-    plt.subplot(1, 2, 2)
-    plt.stackplot(input_exci_neuron_num_range, 
-                  coefficient_of_variations, 
-                  labels=[str(round(input_neuron_strength_range[i], 1)) + " mV" for i in range(len(input_neuron_strength_range))], 
-                  colors=colors,
-                #   alpha=0.7,
-    )
-    plt.xlim([10, 2000])
-    plt.ylabel("Coefficient of variation")
-    plt.xlabel("Number of simulated input neurons")
+    for i in range(len(input_neuron_strength_range)):
+        plt.plot(np.array(coefficient_of_variations[i]).reshape(-1, 2)[:, 0],
+                 np.array(coefficient_of_variations[i]).reshape(-1, 2)[:, 1],
+                 label=str(round(input_neuron_strength_range[i], 1)) + " mV",
+                 color=colors[i],)
+    plt.ylabel("Coefficient of Variation", fontsize=16, fontweight='bold')
+    plt.xlabel("Number of simulated input neurons", fontsize=16, fontweight='bold')
     plt.legend()
     plt.tight_layout()
     plt.show()
 
+# This simulation simulates different inhibitory to excitatory neuron ratios
+def fullsim2(T, dt):
+    # Parameters
+    input_exci_neuron_num_range = np.arange(1001, 1, -1) 
+    input_inhi_neuron_num_range = np.arange(1, 1001, 1)
+    input_neurons_freq = 35 # Hz
+    input_neuron_strength = 5.0 # mV
+
+    frequencies_list = [[] for _ in range(3)]
+
+    # First loop keeps the ratio 1 to 1
+    input_inhibitory = [poisson_neuron(input_neurons_freq, T-dt) for _ in range(max(input_inhi_neuron_num_range))]
+    input_excitatory = [poisson_neuron(input_neurons_freq, T-dt) for _ in range(max(input_exci_neuron_num_range))]
+    i = 0
+    input_range = input_exci_neuron_num_range if max(input_exci_neuron_num_range) > max(input_inhi_neuron_num_range) else input_inhi_neuron_num_range
+    for n in range(len(input_range)):
+        print(f"    {i}/{len(input_exci_neuron_num_range)} with inhibitory input: {input_inhi_neuron_num_range[n]} | excitatory input: {input_exci_neuron_num_range[n]} and latest frequency: {frequencies_list[0][-1] if frequencies_list[0] else  'nan'}", end='\r')
+        inhibitory_input = input_inhibitory[:input_inhi_neuron_num_range[n]]
+        excitatory_input = input_excitatory[:input_exci_neuron_num_range[n]]
+        
+        current_freq, spikes = simulate(
+            input_neuron_strength, 
+            inhibitory_input, 
+            excitatory_input, 
+            T, 
+            dt,
+        )
+        frequencies_list[0].append(current_freq)
+        # if i % 4 == 0 and len(spikes) >= 1:
+        #     fano_factors[p_i].append([n, utils.calculate_fano_factor(np.asarray(spikes), [0.01, 0.05, 0.1], T)[0.1]])
+        #     coefficient_of_variations[p_i].append(utils.calculate_coefficient_of_variation(spikes) if spikes else 0)
+        i += 1  
+
+    # input_exci_neuron_num_range = np.arange(1, 26, 1) 
+    # input_inhi_neuron_num_range = np.arange(1, 501, 1)
+
+    # i = 0
+    # for n in input_range:
+    #     print(f"    {i}/{len(input_exci_neuron_num_range)}", end='\r')
+    #     inhibitory_input = input_inhibitory[:min(n, max(input_inhi_neuron_num_range))]
+    #     excitatory_input = input_excitatory[:min(n, max(input_exci_neuron_num_range))]
+        
+    #     current_freq, spikes = simulate(
+    #         input_neuron_strength, 
+    #         inhibitory_input, 
+    #         excitatory_input, 
+    #         T, 
+    #         dt,
+    #     )
+    #     frequencies_list[1].append(current_freq)
+    #     # if i % 4 == 0 and len(spikes) >= 1:
+    #     #     fano_factors[p_i].append([n, utils.calculate_fano_factor(np.asarray(spikes), [0.01, 0.05, 0.1], T)[0.1]])
+    #     #     coefficient_of_variations[p_i].append(utils.calculate_coefficient_of_variation(spikes) if spikes else 0)
+    #     i += 1 
+
+    # input_exci_neuron_num_range = np.arange(1, 501, 1) 
+    # input_inhi_neuron_num_range = np.arange(1, 26, 1)
+
+    # i = 0
+    # for n in input_range:
+    #     print(f"    {i}/{len(input_exci_neuron_num_range)}", end='\r')
+    #     inhibitory_input = input_inhibitory[:min(n, max(input_inhi_neuron_num_range))]
+    #     excitatory_input = input_excitatory[:min(n, max(input_exci_neuron_num_range))]
+        
+    #     current_freq, spikes = simulate(
+    #         input_neuron_strength, 
+    #         inhibitory_input, 
+    #         excitatory_input, 
+    #         T, 
+    #         dt,
+    #     )
+    #     frequencies_list[2].append(current_freq)
+    #     # if i % 4 == 0 and len(spikes) >= 1:
+    #     #     fano_factors[p_i].append([n, utils.calculate_fano_factor(np.asarray(spikes), [0.01, 0.05, 0.1], T)[0.1]])
+    #     #     coefficient_of_variations[p_i].append(utils.calculate_coefficient_of_variation(spikes) if spikes else 0)
+    #     i += 1 
+
+    plt.figure(figsize=(12, 4))
+    plt.plot(input_inhi_neuron_num_range, frequencies_list[0], linestyle='solid', label="1:1")
+    # plt.plot(input_range, frequencies_list[1], linestyle='dashed', label="x+1:1")
+    # plt.plot(input_range, frequencies_list[2], linestyle='dotted', label="1:x+1")
+    plt.ylabel("Firing rate frequency (Hz)")
+    plt.xlabel("Number of simulated input neurons")
+    plt.tight_layout()
+    plt.show()
+
+def simulateQ6(stimulus, T, dt, constant_input):
+
+    iaf_neuron = IntegrateAndFireNeuron(
+        threshold=-45.0,
+        tau=25.0,
+        E=-65.0,
+        spikeVol=20.0,
+        reset_voltage=-70.0,
+        absolut_refractory_period=2.0,
+        relative_refractory_period=4.0,
+    )
+    input_values = stimulus
+    stimulus_scalar = 0.5
+
+    for t in range(len(input_values)):
+        print(f"    {t}/{T//dt}", end='\r')
+        RI = input_values[t]*stimulus_scalar + constant_input
+        iaf_neuron.stepH1(RI, dt)
+
+    return len(iaf_neuron.getSpikes()) / (T / 1000), iaf_neuron.getSpikes()
+
+# Fullsim for question 6
+def fullsim3():
+    
+    stimulus = np.genfromtxt('ExtendedCoursework/stim.dat')
+    T = len(stimulus) * 2 # ms
+    dt = 2 # ms
+    constant = 10 # mV
+
+    freq, spikes_times =  simulateQ6(stimulus, T, dt, constant)
+    print()
+    print(len(spikes_times))
+    q5.question5custom(spikes_times, constant)
 
 if __name__=="__main__":
     # np.random.seed(0)
-    T = 1000 # ms
+    T = 10000 # ms
     dt = 1 # ms
-    input_neurons_freq = 10
+    input_neurons_input_exci_neuron_num_rangefreq = 10
 
-
-
-    fullsim1(T, dt, input_neurons_freq)
+    # fullsim1(T, dt, input_neurons_freq)
+    # fullsim2(T, dt)
+    fullsim3()

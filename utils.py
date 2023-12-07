@@ -8,7 +8,7 @@ def calculate_fano_factor(spike_times, window_sizes, duration):
         variance = np.var(spike_counts)
         mean = np.mean(spike_counts)
         fano_factors[window] = variance / mean if mean > 0 else float('nan')
-    
+
     return fano_factors
 
 def calculate_coefficient_of_variation(spike_times):
