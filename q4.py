@@ -29,50 +29,33 @@ def question4():
     time_vector = np.linspace(-window_size_ms, 0, window_size_points, endpoint=True)
 
     # Plotting
-    # plt.figure(figsize=(10, 6))
-    # plt.plot(time_vector, sta)
-    # plt.xlabel('Time before spike (ms)')
-    # plt.ylabel('Stimulus')
-    # plt.title('Spike-Triggered Average over 100 ms')
-    # plt.grid(True)
-    # plt.show()
-    # plt.figure(figsize=(12, 6))
-
-    # plt.figure(figsize=(10, 6))
-    # plt.plot(time_vector, sta, color='royalblue', linestyle='-', linewidth=2, marker='o', markersize=4)
-    # plt.xlabel('Time before spike (ms)', fontsize=12)
-    # plt.ylabel('Stimulus', fontsize=12)
-    # plt.title('Spike-Triggered Average over 100 ms', fontsize=14)
-    # plt.grid(True, linestyle='--', linewidth=0.5, alpha=0.9)
-    # plt.tight_layout()
-    # plt.savefig('STA_plot.png', dpi=300)  # Save the figure in high-resolution
-    # plt.show()
-
     plt.figure(figsize=(10, 6))
 
     # Plot the STA curve
-    plt.plot(time_vector, sta, color='royalblue', linestyle='-', linewidth=2)
+    plt.plot(time_vector, sta, color='royalblue', linestyle='-', linewidth=2, marker='o', markersize=4)
 
-    # Indicate the maximum value on the curve
+    # Find and indicate the maximum value on the curve
     max_sta = np.max(sta)
     max_time = time_vector[np.argmax(sta)]
-    plt.plot(max_time, max_sta, 'ro')  # 'ro' plots a red circle at the max point
-    plt.annotate(f'Maximum ({max_time} ms, {max_sta:.2f})', xy=(max_time, max_sta),
-                 xytext=(max_time+5, max_sta), arrowprops=dict(facecolor='black', shrink=0.05),
-                 fontsize=10, ha='center')
+    max_time_rounded = round(max_time, 2)  # Round the time to two decimal places
+    plt.axvline(x=max_time_rounded, color='red', linestyle='--')  # Vertical line for the maximum
+
+    # Annotate the maximum value on the curve
+    plt.text(max_time_rounded-1, 0, f'Max: {max_time_rounded} ms\nSTA : {max_sta:.2f}', 
+             color='black', verticalalignment='bottom', horizontalalignment='right')
 
     # Set the x-axis ticks
-    plt.xticks(np.arange(-100, 1, 20))
+    plt.xticks(np.arange(-100, 1, 10))
 
     # Enhanced text for titles and labels
     plt.xlabel('Time before spike (ms)', fontsize=12, fontweight='bold')
-    plt.ylabel('Stimulus', fontsize=12, fontweight='bold')
+    plt.ylabel('STA of Stimulus', fontsize=12, fontweight='bold')
     plt.title('Neural Response Characterization of Fly H1 Neuron', fontsize=14, fontweight='bold')
 
     # Additional styling
     plt.grid(True, linestyle='--', linewidth=0.5, alpha=0.7)
     plt.tight_layout()
-    plt.savefig('/mnt/data/Enhanced_STA_plot.png', dpi=300)  # Save the figure in high-resolution
+    plt.savefig('STA_plot.png', dpi=300)  # Save the figure in high-resolution
     plt.show()
 
 
