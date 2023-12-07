@@ -4,6 +4,9 @@ import seaborn as sns
 import utils
 import time
 from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.pipeline import make_pipeline, Pipeline
+from sklearn.preprocessing import MinMaxScaler
 from multiprocessing import Value, Manager, Process
 
 class IntegrateAndFireNeuron:
@@ -110,9 +113,9 @@ def simulate(input_strength, inhi_input, exci_input, T, dt):
         RI = input_values[int(t / dt)] + constant_input
         iaf_neuron.step(RI, dt)
 
-    return len(iaf_neuron.getSpikes()) / (T / 1000)
+    return len(iaf_neuron.getSpikes()) / (T / 1000), iaf_neuron
 
-def worker(p_n, p_i, input_neuron_strength, input_exci_neuron_num_range, input_inhi_neuron_num_range, input_neuron_freq, T, dt, shared_i, lock, frequencies_list):
+def worker(p_n, p_i, input_neuron_strength, input_exci_neuron_num_range, input_inhi_neuron_num_range, input_neuron_freq, T, dt, shared_i, lock, frequencies_list, spikes_list):
 
     # print("Calculating poisson procces input neurons spikes for " + str(len(input_exci_neuron_num_range)) + " neurons")
     input_inhibitory = [poisson_neuron(input_neuron_freq, T-dt) for _ in range(max(input_inhi_neuron_num_range))]
@@ -125,29 +128,36 @@ def worker(p_n, p_i, input_neuron_strength, input_exci_neuron_num_range, input_i
             shared_i.value += 1
             print(f"    {shared_i.value}/{len(input_exci_neuron_num_range)*p_n}", end='\r')
         
-        frequencies_list[p_i].append(simulate(
+        current_freq, spikes = simulate(
             input_neuron_strength, 
             inhibitory_input, 
             excitatory_input, 
             T, 
             dt,
-        ))
+        )
+        frequencies_list[p_i].append(current_freq)
+        spikes_list[p_i].append(spikes.getSpikes())
+        
 
 # Main simualtion function with the same number of excitatory and inhibitory neurons
 def fullsim1(T, dt, input_neuron_freq):
 
     # Parameters
-    input_exci_neuron_num_range = np.arange(1, 2002, 1) # nnumber of excitatory neurons simulated by a poisson process
-    input_inhi_neuron_num_range = np.arange(1, 2002, 1) # nnumber of inhibitory neurons simulated by a poisson process
+    input_exci_neuron_num_range = np.arange(1, 2001, 1) # nnumber of excitatory neurons simulated by a poisson process
+    input_inhi_neuron_num_range = np.arange(1, 2001, 1) # nnumber of inhibitory neurons simulated by a poisson process
     input_neuron_strength_range = np.arange(0.5, 5.1, 0.5) # mV
     input_neuron_freq = 35 # Hz
 
     full_freq_list = [[] for _ in range(len(input_neuron_strength_range))]
     full_sim_n = 1
 
+    fano_factors = {}
+    coefficient_of_variations = {}
+
     # Proccessing parameters
     manager = Manager()
     frequencies_list = manager.list([manager.list() for _ in range(len(input_neuron_strength_range))])  # Shared list
+    spikes_list = manager.list([manager.list() for _ in range(len(input_neuron_strength_range))])
     shared_i = Value('i', 0)  # Shared counter
     lock = manager.Lock()  # Shared lock for the coounter
     start_time = time.time()  # Start time
@@ -169,6 +179,7 @@ def fullsim1(T, dt, input_neuron_freq):
                 shared_i,
                 lock,
                 frequencies_list,
+                spikes_list,
             ))
             processes.append(p)
             p.start()
@@ -196,13 +207,14 @@ def fullsim1(T, dt, input_neuron_freq):
         for j in range(len(input_exci_neuron_num_range)):
             full_freq_list[i][j] /= full_sim_n
 
-    predictions = []
-    for i in range(len(input_neuron_strength_range)):
-        model = LinearRegression()
-        model.fit(np.array(input_exci_neuron_num_range).reshape(-1, 1), np.array(full_freq_list[i]).reshape(-1, 1))
-        pred = model.predict(np.array(input_exci_neuron_num_range).reshape(-1, 1))
-        predictions.append(pred[:, 0])
-        print("Predicted function for " + str(input_neuron_strength_range[i]) + " mV: " + str(round(model.coef_[0][0], 2)) + " * x  +  " + str(round(model.intercept_[0], 2)))
+    # degree = 3
+    # model = make_pipeline(PolynomialFeatures(degree), LinearRegression())
+    # predictions = []
+    # for i in range(len(input_neuron_strength_range)):
+    #     model.fit(np.array(input_exci_neuron_num_range).reshape(-1, 1), 
+    #               np.array(full_freq_list[i]).reshape(-1, 1))
+
+    #     predictions.append(model.predict(np.array(input_exci_neuron_num_range).reshape(-1, 1)))
 
     print("Done in time: " + str(round(time.time() - start_time, 2)) + "s or " + str(round((time.time() - start_time) / 60, 2)) + "m")
 
@@ -214,26 +226,28 @@ def fullsim1(T, dt, input_neuron_freq):
     plt.stackplot(input_exci_neuron_num_range, 
                   full_freq_list, 
                   labels=[str(round(input_neuron_strength_range[i], 1)) + " mV" for i in range(len(input_neuron_strength_range))], 
-                  colors=colors
+                  colors=colors,
+                #   alpha=0.7,
     )
-    for i in range(len(input_neuron_strength_range)):
-        plt.plot(input_exci_neuron_num_range, 
-                 predictions[i], 
-                 color=colors[i], 
-                 linestyle='-')
-
+    # for i in range(len(input_neuron_strength_range)):
+    #     plt.plot(input_exci_neuron_num_range, 
+    #              predictions[i], 
+    #              color=colors[i], 
+    #              linestyle='-')
 
     # Define axes limits
     plt.xlim([10, 2000])
     # plt.ylim([0, 100])
     
     # Define axes labels 
-    plt.ylabel("Frequency (Hz)")
-    plt.xlabel("Number of neurons")
+    plt.ylabel("Firing rate frequency (Hz)")
+    plt.xlabel("Number of simulated input neurons")
     
     plt.legend()
     plt.tight_layout()
     plt.show()
+
+    # Plot the results from the spikes list
 
     return
 

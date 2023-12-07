@@ -3,18 +3,6 @@ import matplotlib.pyplot as plt
 import utils
 
 def find_spike_pairs(spike_times, interval, adjacent_only):
-    """
-    Find pairs of spikes separated by a specific interval.
-
-    Parameters:
-    spike_times (np.array): Array of spike times in ms.
-    interval (int): Interval between spikes in ms.
-    adjacent_only (bool): If True, only consider adjacent spikes.
-
-    Returns:
-    list: List of indices where the first spike of each pair occurs.
-    """
-
     pairs = []
     if adjacent_only:
         for i in range(len(spike_times) - 1):
@@ -33,18 +21,6 @@ def find_spike_pairs(spike_times, interval, adjacent_only):
     return pairs
 
 def calculate_triggered_stimulus(stimulus, spike_times, intervals, sampling_rate=500, adjacent_only=False):
-    """
-    Calculate the average stimulus for pairs of spikes separated by specific intervals.
-
-    Parameters:
-    stimulus (np.array): Array of stimulus data.
-    spike_times (np.array): Array of spike times in ms.
-    intervals (list): List of intervals in ms.
-    sampling_rate (int): Sampling rate in Hz.
-
-    Returns:
-    dict: Dictionary with interval as key and average stimulus as value.
-    """
     triggered_stimuli = {}
     for interval in intervals:
         segments = []
