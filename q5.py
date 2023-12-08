@@ -180,15 +180,17 @@ def question5custom(spike_times, constant):
     print("Calculating triggered stimuli for adjacent spike times...")
     triggered_stimuli_adjacent = calculate_triggered_stimulus(stimulus, spike_times, intervals, adjacent_only=True)
 
-    sta_single_spike = q4.question4(show_graph=False)
+    sta_single_spike1 = q4.question4(show_graph=False)
+    sta_single_spike2 = q4.question4(show_graph=False, spike_times=spike_times[1:])
 
     print("Plotting...")
-    fig, axs = plt.subplots(1, 2, figsize=(18, 7), sharey=True)
+    fig, axs = plt.subplots(1, 2, figsize=(16, 8), sharey=True)
 
-    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']  # More appealing color palette
+    # colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']  # More appealing color palette
+    colors = ['blue', 'orange', 'green', 'red']
     intervals = [2, 10, 20, 50]
 
-    # Plot for non-adjacent spike times with enhanced aesthetics
+    # non-adjacent spike times
     for i, interval in enumerate(intervals):
         if i == 1:
             if triggered_stimuli[interval] is not None:
@@ -199,12 +201,19 @@ def question5custom(spike_times, constant):
                             linewidth=2,
                             alpha=0.8)
     axs[0].plot(np.linspace(-100, 0, len(triggered_stimuli[interval])), 
-                sta_single_spike, 
+                sta_single_spike1, 
                 label='single spike', 
                 color='black',
-                linewidth=2)
-
-    # Plot for adjacent spike times with enhanced aesthetics
+                linewidth=2,
+                linestyle='--',)
+    axs[0].plot(np.linspace(-100, 0, len(triggered_stimuli[interval])), 
+                sta_single_spike2, 
+                label='single spike', 
+                color='black',
+                linewidth=2,
+                linestyle='-',)
+    
+    # adjacent spike times
     for i, interval in enumerate(intervals):
         if i == 1:
             if triggered_stimuli_adjacent[interval] is not None:
@@ -215,23 +224,24 @@ def question5custom(spike_times, constant):
                             linewidth=2,
                             alpha=0.8,)
     axs[1].plot(np.linspace(-100, 0, len(triggered_stimuli[interval])), 
-                sta_single_spike, 
+                sta_single_spike1, 
                 label='single spike', 
                 color='black',
-                linewidth=2,)
-
-    # Calculation for the H1 data
+                linewidth=2,
+                linestyle='--',)
+    axs[1].plot(np.linspace(-100, 0, len(triggered_stimuli[interval])), 
+                sta_single_spike2, 
+                label='single spike', 
+                color='black',
+                linewidth=2,
+                linestyle='-',)
+    
+    # reset spike_times
     spike_times = utils.load_rho()
-    # Define intervals in ms
-    intervals = [2, 10, 20, 50]
 
-    # Calculate the average stimulus for each interval (not necessarily adjacent spike_times)
     triggered_stimuli = calculate_triggered_stimulus(stimulus, spike_times, intervals)
-
-    # Repeat for adjacent spike_times only
     triggered_stimuli_adjacent = calculate_triggered_stimulus(stimulus, spike_times, intervals, adjacent_only=True)
 
-    # Plot for non-adjacent spike times with enhanced aesthetics
     for i, interval in enumerate(intervals):
         if i == 1:
             if triggered_stimuli[interval] is not None:
@@ -242,7 +252,6 @@ def question5custom(spike_times, constant):
                             linewidth=2,
                             linestyle='--',)
 
-    # Plot for adjacent spike times with enhanced aesthetics
     for i, interval in enumerate(intervals):
         if i == 1:
             if triggered_stimuli_adjacent[interval] is not None:
@@ -254,33 +263,23 @@ def question5custom(spike_times, constant):
                             linestyle='--')
 
 
-
-    # Common x-axis label
-    fig.text(0.5, 0.02, 'Time Before Pairs of Spikes (ms)', ha='center', fontsize=16, fontweight='bold')
-
-    # Shared y-axis label
+    fig.text(0.5, 0.05, 'Time Before Pairs of Spikes (ms)', ha='center', fontsize=16, fontweight='bold')
     fig.text(0, 0.5, 'Stimulus Average', va='center', rotation='vertical', fontsize=16, fontweight='bold')
 
-    # Individual subplot titles
-    axs[0].set_title('Non-Adjacent Spike Times', fontsize=17, fontweight='bold')
-    axs[1].set_title('Adjacent Spike Times', fontsize=17, fontweight='bold')
+    axs[0].set_title('Non-Adjacent Spike Times', fontsize=18, fontweight='bold')
+    axs[1].set_title('Adjacent Spike Times', fontsize=18, fontweight='bold')
 
-    # Add grid, legend, and tick parameters to each subplot
     for ax in axs:
         ax.grid(True, linestyle='--', linewidth=0.5, alpha=0.7)
         ax.legend(frameon=False, loc='best')
         ax.tick_params(labelsize=12)
 
-    # Common main title
-    plt.suptitle('Comparative Triggered Stimulus Analysis', fontsize=18, fontweight='bold', y=0.98)
+    plt.tight_layout(rect=[0, 0.05, 1, 0.95], pad=3)
 
-    # Tight layout often improves the spacing between plot elements
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # Adjust the rect to prevent overlap of suptitle and x/y labels
-
-    # Optionally, save the figure with a transparent background
     plt.savefig('STA_plot_pairs.png', dpi=300, transparent=True)
 
     plt.show()
+
 
 if __name__ == "__main__":
     question5()

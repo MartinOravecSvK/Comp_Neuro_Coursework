@@ -86,6 +86,12 @@ class IntegrateAndFireNeuron:
         return self.V
     
     def stepH1(self, RI, dt):
+        beta = 0.2
+        gamma = 0.1
+        minimum_threshold = -60.0
+        maximum_threshold = -50.0
+        AHP_magnitude = 5.0
+
         time_since_last_spike = self.timeElapsed - self.last_spike_time
 
         # Absolute refractory period check
@@ -133,6 +139,58 @@ class IntegrateAndFireNeuron:
         # Reset the voltage if it's below the resting potential
         if self.V < self.E:
             self.V = self.E  # Reset to resting potential
+
+        return self.V
+
+    def stepH12(self, RI, dt):
+        beta = 0.2
+        gamma = 0.1
+        minimum_threshold = -60.0
+        maximum_threshold = -50.0
+        AHP_magnitude = 5.0
+
+        time_since_last_spike = self.timeElapsed - self.last_spike_time
+        
+        # If the neuron is in the absolute refractory period, do not update anything
+        if time_since_last_spike < self.arf:
+            return self.V
+
+        # Calculate the rate of change of the stimulus, if previous_RI has been set
+        if self.previous_RI is not None:
+            dRI_dt = (RI - self.previous_RI) / dt
+        else:
+            dRI_dt = 0  # This occurs only for the first time step
+        
+        # Update the previous stimulus input for the next iteration
+        self.previous_RI = RI
+
+        # Adjust the threshold based on the rate of change of the stimulus
+        if dRI_dt < 0:  # Stimulus is decreasing
+            self.threshold -= beta * abs(dRI_dt)  # Decrease threshold more rapidly
+        else:  # Stimulus is not decreasing or is increasing
+            self.threshold += gamma * dRI_dt  # Increase threshold, but less rapidly
+
+        # Bound the threshold to stay within specified limits
+        self.threshold = max(self.threshold, minimum_threshold)
+        self.threshold = min(self.threshold, maximum_threshold)
+
+        # Calculate the change in membrane potential
+        dV = (dt / self.tau) * (-(self.V - self.E) + self.R * RI)
+
+        # Update the membrane potential
+        self.V += dV
+
+        # Check if the membrane potential has reached the threshold to fire a spike
+        if self.V >= self.threshold:
+            # Record the spike time
+            self.spikes.append(self.timeElapsed)
+            # Reset the membrane potential to its resting value after a spike
+            self.V = self.resetVol
+            # Record the last spike time
+            self.last_spike_time = self.timeElapsed
+
+        # Increment the elapsed time
+        self.timeElapsed += dt
 
         return self.V
 
@@ -438,12 +496,12 @@ def simulateQ6(stimulus, T, dt, constant_input):
         relative_refractory_period=4.0,
     )
     input_values = stimulus
-    stimulus_scalar = 0.5
+    stimulus_scalar = 1
 
     for t in range(len(input_values)):
         print(f"    {t}/{T//dt}", end='\r')
         RI = input_values[t]*stimulus_scalar + constant_input
-        iaf_neuron.stepH1(RI, dt)
+        iaf_neuron.step(RI, dt)
 
     return len(iaf_neuron.getSpikes()) / (T / 1000), iaf_neuron.getSpikes()
 

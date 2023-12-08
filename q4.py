@@ -2,14 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import utils
 
-def question4(show_graph=True):
-    spike_times = utils.load_rho()
-    # Load the stimulus data
+def question4(show_graph=True, spike_times = None):
+    if spike_times is None:
+        spike_times = utils.load_rho()
     stimulus = np.genfromtxt('ExtendedCoursework/stim.dat')
 
-    # Parameters
     sampling_rate = 500  # Hz
-    window_size_ms = 100  # milliseconds
+    window_size_ms = 100  # ms
     window_size_points = window_size_ms * sampling_rate // 1000  # convert ms to data points
 
     # Initialize an array to store the segments of the stimulus
@@ -19,7 +18,7 @@ def question4(show_graph=True):
     for spike_time in spike_times:
         index = spike_time // 2  # convert ms to data points
         if index >= window_size_points:
-            segment = stimulus[index - window_size_points:index]
+            segment = stimulus[int(index) - window_size_points:int(index)]
             sta_segments.append(segment)
 
     # Calculate the average of the segments
