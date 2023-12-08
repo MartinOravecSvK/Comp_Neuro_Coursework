@@ -2,8 +2,8 @@ import numpy as np
 import utils
 
 def question2():
-    duration = 1000  # 20 minutes
-    window_sizes = [0.01, 0.05, 0.1]
+    duration = 1000  # 20 minutes in seconds
+    window_sizes = [0.01, 0.05, 0.1] # seconds
 
     raw_data = np.genfromtxt('ExtendedCoursework/rho.dat')
     spike_train =  np.array([i*0.002 for i in range(len(raw_data)) if raw_data[i] == 1])

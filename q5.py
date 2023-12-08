@@ -40,13 +40,10 @@ def calculate_triggered_stimulus(stimulus, spike_times, intervals, adjacent_only
 def question5():
     stimulus = np.genfromtxt('ExtendedCoursework/stim.dat')
     spike_times = utils.load_rho()
-    # Define intervals in ms
+
     intervals = [2, 10, 20, 50]
 
-    # Calculate the average stimulus for each interval (not necessarily adjacent spike_times)
     triggered_stimuli = calculate_triggered_stimulus(stimulus, spike_times, intervals)
-
-    # Repeat for adjacent spike_times only
     triggered_stimuli_adjacent = calculate_triggered_stimulus(stimulus, spike_times, intervals, adjacent_only=True)
 
     # Display the results
@@ -166,14 +163,15 @@ def question5():
 def question5custom(spike_times, constant):
     stimulus = np.genfromtxt('ExtendedCoursework/stim.dat')
     
-    # Define intervals in ms
     intervals = [2, 10, 20, 50]
 
     # Calculate the average stimulus for each interval (not necessarily adjacent spike_times)
     print("Calculating triggered stimuli for non-adjacent spike times...")
-    for stimuli in stimulus:
-        stimuli = stimuli + constant
-        
+    # for stimuli in stimulus:
+    #     stimuli = stimuli + constant
+    for s_i in range(len(stimulus)):
+        stimulus[s_i] = stimulus[s_i] + constant
+
     triggered_stimuli = calculate_triggered_stimulus(stimulus, spike_times, intervals)
 
     # Repeat for adjacent spike_times only
