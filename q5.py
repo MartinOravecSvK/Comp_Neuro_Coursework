@@ -186,8 +186,8 @@ def question5custom(spike_times, constant):
     print("Plotting...")
     fig, axs = plt.subplots(1, 2, figsize=(16, 8), sharey=True)
 
-    # colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']  # More appealing color palette
-    colors = ['blue', 'orange', 'green', 'red']
+    # colors = ['blue', 'orange', 'green', 'red']
+    colors = ['blue', 'green', 'red']
     intervals = [2, 10, 20, 50]
 
     # non-adjacent spike times
@@ -196,19 +196,19 @@ def question5custom(spike_times, constant):
             if triggered_stimuli[interval] is not None:
                 axs[0].plot(np.linspace(-100, 0, len(triggered_stimuli[interval])), 
                             triggered_stimuli[interval], 
-                            label=f'{interval} ms', 
+                            label=f'{interval} ms IaF', 
                             color=colors[i],
                             linewidth=2,
                             alpha=0.8)
     axs[0].plot(np.linspace(-100, 0, len(triggered_stimuli[interval])), 
                 sta_single_spike1, 
-                label='single spike', 
+                label='single spike H1', 
                 color='black',
                 linewidth=2,
                 linestyle='--',)
     axs[0].plot(np.linspace(-100, 0, len(triggered_stimuli[interval])), 
                 sta_single_spike2, 
-                label='single spike', 
+                label='single spike IaF', 
                 color='black',
                 linewidth=2,
                 linestyle='-',)
@@ -219,24 +219,24 @@ def question5custom(spike_times, constant):
             if triggered_stimuli_adjacent[interval] is not None:
                 axs[1].plot(np.linspace(-100, 0, len(triggered_stimuli_adjacent[interval])), 
                             triggered_stimuli_adjacent[interval], 
-                            label=f'{interval} ms', 
+                            label=f'{interval} ms IaF', 
                             color=colors[i],
                             linewidth=2,
                             alpha=0.8,)
     axs[1].plot(np.linspace(-100, 0, len(triggered_stimuli[interval])), 
                 sta_single_spike1, 
-                label='single spike', 
+                label='single spike H1', 
                 color='black',
                 linewidth=2,
                 linestyle='--',)
     axs[1].plot(np.linspace(-100, 0, len(triggered_stimuli[interval])), 
                 sta_single_spike2, 
-                label='single spike', 
+                label='single spike IaF', 
                 color='black',
                 linewidth=2,
                 linestyle='-',)
     
-    # reset spike_times
+    # spike times of the H1 neuron
     spike_times = utils.load_rho()
 
     triggered_stimuli = calculate_triggered_stimulus(stimulus, spike_times, intervals)
@@ -247,7 +247,7 @@ def question5custom(spike_times, constant):
             if triggered_stimuli[interval] is not None:
                 axs[0].plot(np.linspace(-100, 0, len(triggered_stimuli[interval])), 
                             triggered_stimuli[interval], 
-                            label=f'{interval} ms', 
+                            label=f'{interval} ms H1', 
                             color=colors[i],
                             linewidth=2,
                             linestyle='--',)
@@ -257,25 +257,27 @@ def question5custom(spike_times, constant):
             if triggered_stimuli_adjacent[interval] is not None:
                 axs[1].plot(np.linspace(-100, 0, len(triggered_stimuli_adjacent[interval])), 
                             triggered_stimuli_adjacent[interval], 
-                            label=f'{interval} ms', 
+                            label=f'{interval} ms H1', 
                             color=colors[i],
                             linewidth=2,
                             linestyle='--')
 
 
-    fig.text(0.5, 0.05, 'Time Before Pairs of Spikes (ms)', ha='center', fontsize=16, fontweight='bold')
-    fig.text(0, 0.5, 'Stimulus Average', va='center', rotation='vertical', fontsize=16, fontweight='bold')
+    fig.text(0.5, 0.05, 'Time Before Pairs of Spikes with window 10ms (ms)', ha='center', fontsize=16)
+    fig.text(0, 0.5, 'Stimulus Average', va='center', rotation='vertical', fontsize=16)
 
     axs[0].set_title('Non-Adjacent Spike Times', fontsize=18, fontweight='bold')
     axs[1].set_title('Adjacent Spike Times', fontsize=18, fontweight='bold')
 
     for ax in axs:
         ax.grid(True, linestyle='--', linewidth=0.5, alpha=0.7)
-        ax.legend(frameon=False, loc='best')
+        # ax.legend(loc='best')
+        ax.legend()
         ax.tick_params(labelsize=12)
 
     plt.tight_layout(rect=[0, 0.05, 1, 0.95], pad=3)
-
+    # plt.legend(frameon=False, loc='upper center', bbox_to_anchor=(0.5, -0.1), ncol=3, fontsize=14)
+    # fig.legend()
     plt.savefig('STA_plot_pairs.png', dpi=300, transparent=True)
 
     plt.show()

@@ -32,8 +32,6 @@ class IntegrateAndFireNeuron:
         self.arf = absolut_refractory_period # Refractory period
         self.rrf =  relative_refractory_period # Refractory period
         self.spikes = []
-        self.last_spike_time = -float('inf')  # Initialize last spike time
-        self.previous_RI = None
 
     def step(self, RI, dt):
         self.timeElapsed += dt
@@ -50,147 +48,26 @@ class IntegrateAndFireNeuron:
 
         return self.V
 
+    # A step fnuction with an absolut and relative refractory period
     def stepRef(self, RI, dt):
         self.timeElapsed += dt
 
-        if self.timeElapsed - self.last_spike_time < self.arf:
-            return self.V  # No change in voltage
+        if (self.spikes and self.timeElapsed - self.spikes[-1] < self.arf):
+            return self.V 
 
-        # Adjust threshold if in relative refractory period
         effective_threshold = self.threshold
-        # if self.arf <= self.timeElapsed - self.last_spike_time < self.arf + self.rrf:
-        #     effective_threshold += 20 
+        if (self.spikes and self.arf <= self.timeElapsed - self.spikes[-1] < self.arf + self.rrf):
+            effective_threshold += 20 
 
         if (self.V == self.spikeVol):
             self.V = self.restVol
 
-        if self.previous_RI is None:
-            self.previous_RI = RI
-
-        dRI_dt = (RI - self.previous_RI) / dt
-        self.previous_RI = RI
-
-        alpha = -0.001
-        sensitivity_factor = 1.0 + alpha * abs(dRI_dt)
-
         dV = dt / self.tau * (self.E - self.V + RI)
         self.V += dV
-
-        self.V = self.V * sensitivity_factor
         
         if self.V >= effective_threshold:
             self.V = 20.0  # Set membrane potential to 20 mV
             self.spikes.append(self.timeElapsed)
-            self.last_spike_time = self.timeElapsed
-
-        return self.V
-    
-    def stepH1(self, RI, dt):
-        beta = 0.2
-        gamma = 0.1
-        minimum_threshold = -60.0
-        maximum_threshold = -50.0
-        AHP_magnitude = 5.0
-
-        time_since_last_spike = self.timeElapsed - self.last_spike_time
-
-        # Absolute refractory period check
-        if time_since_last_spike < self.arf:
-            return self.V  # No change in voltage due to absolute refractory period
-
-        # Calculate rate of change of input (if previous_RI is not None)
-        if self.previous_RI is not None:
-            dRI_dt = (RI - self.previous_RI) / dt
-        else:
-            dRI_dt = 0  # No change for the first time step
-
-        # Update the previous stimulus input for the next iteration
-        self.previous_RI = RI
-
-        # Adjust the threshold based on the rate of change of the stimulus
-        if dRI_dt < 0:  # Stimulus is decreasing
-            self.threshold -= beta * abs(dRI_dt)  # Decrease threshold more rapidly
-        else:  # Stimulus is not decreasing
-            self.threshold += gamma * dRI_dt  # Increase threshold, but less rapidly
-
-        # Ensure the threshold does not go below a minimum value
-        self.threshold = max(self.threshold, minimum_threshold)
-
-        # Ensure the threshold does not exceed a maximum value
-        self.threshold = min(self.threshold, maximum_threshold)
-
-        # Adjust membrane potential based on the input and decay
-        dV = dt / self.tau * (self.E - self.V + self.R * RI)
-        self.V += dV
-
-        # Check for spike
-        if self.V >= self.threshold:
-            self.spikes.append(self.timeElapsed)
-            self.last_spike_time = self.timeElapsed
-            self.V = self.spikeVol  # Emit spike
-            # Implement the afterhyperpolarization (AHP) phase
-            self.V -= AHP_magnitude  # AHP_magnitude is a constant representing the AHP effect
-
-        # Implement relative refractory period based on AHP
-        if 0 < time_since_last_spike < self.rrf:
-            # The neuron is in the relative refractory period, so it's harder to spike
-            self.V += AHP_magnitude * (time_since_last_spike / self.rrf)  # Gradually return to normal potential
-
-        # Reset the voltage if it's below the resting potential
-        if self.V < self.E:
-            self.V = self.E  # Reset to resting potential
-
-        return self.V
-
-    def stepH12(self, RI, dt):
-        beta = 0.2
-        gamma = 0.1
-        minimum_threshold = -60.0
-        maximum_threshold = -50.0
-        AHP_magnitude = 5.0
-
-        time_since_last_spike = self.timeElapsed - self.last_spike_time
-        
-        # If the neuron is in the absolute refractory period, do not update anything
-        if time_since_last_spike < self.arf:
-            return self.V
-
-        # Calculate the rate of change of the stimulus, if previous_RI has been set
-        if self.previous_RI is not None:
-            dRI_dt = (RI - self.previous_RI) / dt
-        else:
-            dRI_dt = 0  # This occurs only for the first time step
-        
-        # Update the previous stimulus input for the next iteration
-        self.previous_RI = RI
-
-        # Adjust the threshold based on the rate of change of the stimulus
-        if dRI_dt < 0:  # Stimulus is decreasing
-            self.threshold -= beta * abs(dRI_dt)  # Decrease threshold more rapidly
-        else:  # Stimulus is not decreasing or is increasing
-            self.threshold += gamma * dRI_dt  # Increase threshold, but less rapidly
-
-        # Bound the threshold to stay within specified limits
-        self.threshold = max(self.threshold, minimum_threshold)
-        self.threshold = min(self.threshold, maximum_threshold)
-
-        # Calculate the change in membrane potential
-        dV = (dt / self.tau) * (-(self.V - self.E) + self.R * RI)
-
-        # Update the membrane potential
-        self.V += dV
-
-        # Check if the membrane potential has reached the threshold to fire a spike
-        if self.V >= self.threshold:
-            # Record the spike time
-            self.spikes.append(self.timeElapsed)
-            # Reset the membrane potential to its resting value after a spike
-            self.V = self.resetVol
-            # Record the last spike time
-            self.last_spike_time = self.timeElapsed
-
-        # Increment the elapsed time
-        self.timeElapsed += dt
 
         return self.V
 
@@ -484,11 +361,11 @@ def fullsim2(T, dt):
     plt.tight_layout()
     plt.show()
 
-def simulateQ6(stimulus, T, dt, constant_input):
+def simulateQ6(stimulus, T, dt, constant_input, tau=25.0):
 
     iaf_neuron = IntegrateAndFireNeuron(
         threshold=-45.0,
-        tau=25.0,
+        tau=tau,
         E=-65.0,
         spikeVol=20.0,
         reset_voltage=-70.0,
@@ -499,9 +376,9 @@ def simulateQ6(stimulus, T, dt, constant_input):
     stimulus_scalar = 1
 
     for t in range(len(input_values)):
-        print(f"    {t}/{T//dt}", end='\r')
+        print(f"    {t+1}/{T//dt}", end='\r')
         RI = input_values[t]*stimulus_scalar + constant_input
-        iaf_neuron.step(RI, dt)
+        iaf_neuron.stepRef(RI, dt)
 
     return len(iaf_neuron.getSpikes()) / (T / 1000), iaf_neuron.getSpikes()
 
@@ -513,10 +390,90 @@ def fullsim3():
     dt = 2 # ms
     constant = 10 # mV
 
-    freq, spikes_times =  simulateQ6(stimulus, T, dt, constant)
+    freq, spike_times =  simulateQ6(stimulus, T, dt, constant)
     print()
-    print(len(spikes_times))
-    q5.question5custom(spikes_times, constant)
+    print(len(spike_times))
+    q5.question5custom(spike_times, constant)
+
+def fullsim4():
+
+    stimulus = np.genfromtxt('ExtendedCoursework/stim.dat')
+    T = len(stimulus) * 2 # ms
+    dt = 2 # ms
+    constant = 10 # mV
+    tau_range = np.arange(1, 21, 1)
+    triggered_stimuli = []
+    triggered_stimuli_adjacent = []
+
+    for i, tau in enumerate(tau_range):
+        print(f"    {tau}/{max(tau_range)}", end='\r')
+        _, spike_times =  simulateQ6(stimulus, T, dt, constant, tau)
+
+        intervals = [2, 10, 20, 50]
+
+        # Calculate the average stimulus for each interval (not necessarily adjacent spike_times)
+        for stimuli in stimulus:
+            stimuli = stimuli + constant
+            
+        triggered_stimuli.append(q5.calculate_triggered_stimulus(stimulus, spike_times, intervals)[10])
+        # print(triggered_stimuli[i])
+        # return
+        triggered_stimuli_adjacent.append(q5.calculate_triggered_stimulus(stimulus, spike_times, intervals, adjacent_only=True)[10])
+
+    colors = sns.cubehelix_palette(len(tau_range), start=0.5, rot=-.75)
+    print()
+    print("Plotting...")
+    fig, axs = plt.subplots(1, 2, figsize=(16, 8), sharey=True)
+
+    # non-adjacent spike times
+    if triggered_stimuli is not None:
+        axs[0].stackplot(np.linspace(-100, 0, len(triggered_stimuli[0])), 
+                    triggered_stimuli, 
+                    labels=[str(tau_range[i]) + " ms" for i in range(len(tau_range))], 
+                    colors=colors,
+                    # linewidth=2,
+                    # alpha=0.8
+        )
+
+        # axs[0].set_title("Triggered Stimulus for Non-Adjacent Spike Times")
+
+        axs[0].legend()
+        axs[0].set_xlim([-100, 0])
+        axs[0].set_xticks(np.arange(-100, 1, 10))
+        axs[0].grid(True, linestyle='--', linewidth=0.5, alpha=0.7)
+        # axs[0].tight_layout()
+
+    # adjacent spike times
+    if triggered_stimuli_adjacent is not None:
+        axs[1].stackplot(np.linspace(-100, 0, len(triggered_stimuli_adjacent[0])), 
+                    triggered_stimuli_adjacent, 
+                    labels=[str(tau_range[i]) + " ms" for i in range(len(tau_range))], 
+                    colors=colors,
+                    # linewidth=2,
+                    # alpha=0.8
+        )
+        # axs[1].set_title("Triggered Stimulus for Adjacent Spike Times")
+
+        axs[1].legend()
+        axs[1].set_xlim([-100, 0])
+        axs[1].set_xticks(np.arange(-100, 1, 10))
+        axs[1].grid(True, linestyle='--', linewidth=0.5, alpha=0.7)
+        # axs[1].tight_layout()
+
+    fig.text(0.005, 0.5, 'Stimulus Average', va='center', rotation='vertical', fontsize=16)
+    fig.text(0.5, 0.05, 'Time Before Pairs of Spikes with interval 10ms (ms)', ha='center', fontsize=16)
+
+    axs[0].set_title('Non-Adjacent Spike Times', fontsize=18)
+    axs[1].set_title('Adjacent Spike Times', fontsize=18)
+    for ax in axs:
+        ax.grid(True, linestyle='--', linewidth=0.5, alpha=0.7)
+        # ax.legend(loc='center left', bbox_to_anchor=(-0.1, 0.5))
+        ax.legend(loc='center left')
+        ax.tick_params(labelsize=12)
+
+    plt.tight_layout(rect=[0, 0.05, 1, 0.95], pad=3)
+    # plt.savefig("q6.png")
+    plt.show()
 
 if __name__=="__main__":
     # np.random.seed(0)
@@ -527,3 +484,4 @@ if __name__=="__main__":
     # fullsim1(T, dt, input_neurons_freq)
     # fullsim2(T, dt)
     fullsim3()
+    # fullsim4()
