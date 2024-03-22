@@ -1,10 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import utils
 import threading
 import time
 from multiprocessing import Pool, Value, Manager, Process
+from utils import utils
 
 class IntegrateAndFireNeuron:
     def __init__(self, threshold=-55.0, tau=10.0, R=1.0, E=-70.0, absolut_refractory_period=1.0, relative_refractory_period=4.0, reset_voltage=-80.0):
