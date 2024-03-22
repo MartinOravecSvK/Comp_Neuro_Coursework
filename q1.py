@@ -1,7 +1,21 @@
 import numpy as np
 import utils
 
-def generate_spike_train(firing_rate, interval, refractory_period=0):
+"""
+Question 1: Fano Factor and Coefficient of Variation
+
+    Code to generate spike trains with and without a refractory period 
+    and calculate the Fano factor and coefficient of variation of the interspike intervals (ISI)
+"""
+
+# Parameters:
+#   firing_rate: The average firing rate of the neuron in Hz 
+#   interval: The duration of the spike train in seconds
+#   refractory_period: The refractory period of the neuron in seconds (Default: 0)
+# Returns:
+#   spike_times: An array of spike times in seconds
+
+def generate_spike_train(firing_rate: float, interval: float, refractory_period: float = 0):
     current_time = 0
     spike_times = []
 
@@ -17,6 +31,11 @@ def generate_spike_train(firing_rate, interval, refractory_period=0):
 
     return np.array(spike_times)
 
+
+# Main function to answer question 1
+# - Generates spike trains with and without a refractory period 
+#   and calculates the Fano factor and coefficient of variation of the ISI
+# - Displays the results
 def question1():
     firing_rate = 35  # Hz
     duration = 1000  # seconds
