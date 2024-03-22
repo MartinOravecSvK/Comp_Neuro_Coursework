@@ -1,5 +1,5 @@
 import numpy as np
-import utils
+from utils import utils
 
 """
 Question 1: Fano Factor and Coefficient of Variation
