@@ -1,14 +1,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import utils
 import time
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import make_pipeline, Pipeline
 from sklearn.preprocessing import MinMaxScaler
 from multiprocessing import Value, Manager, Process
+
 import q5
+from utils import utils
 
 class IntegrateAndFireNeuron:
     def __init__(self, 

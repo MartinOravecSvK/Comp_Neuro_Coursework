@@ -1,6 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+# This implementation of the Hodkin Huxley model was not used in the submission
+# Because of this I can't gurantee that it works
+# Based on the constant input graph it seems to work but might need some changes
+
 class HodgkinHuxleyNeuron:
     """ Hodgkin-Huxley Neuron Model """
     def __init__(self):
