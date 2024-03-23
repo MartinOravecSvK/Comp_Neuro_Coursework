@@ -147,7 +147,7 @@ def fullsim1(T, dt):
     input_neuron_strength_range = np.arange(0.5, 5.1, 0.5) # mV
     input_neuron_freq = 35 # Hz
 
-    full_sim_n = 10
+    full_sim_n = 1
     full_freq_list = [[] for _ in range(len(input_neuron_strength_range))]
 
     full_coefficient_of_variations = [[] for _ in range(len(input_neuron_strength_range))]
@@ -210,27 +210,15 @@ def fullsim1(T, dt):
             full_freq_list[i][j] /= full_sim_n
             # full_coefficient_of_variations[i][j] /= full_sim_n
 
-    # degree = 3
-    # model = make_pipeline(PolynomialFeatures(degree), LinearRegression())
-    # predictions = []
-    # for i in range(len(input_neuron_strength_range)):
-    #     model.fit(np.array(input_exci_neuron_num_range).reshape(-1, 1), 
-    #               np.array(full_freq_list[i]).reshape(-1, 1))
-
-    #     predictions.append(model.predict(np.array(input_exci_neuron_num_range).reshape(-1, 1)))
-
     print("Done in time: " + str(round(time.time() - start_time, 2)) + "s or " + str(round((time.time() - start_time) / 60, 2)) + "m")
+
+    save_graphs = False
 
     colors = sns.cubehelix_palette(len(input_neuron_strength_range), start=0.5, rot=-.75)
 
     # Plot the results from the frequencies list
     plt.figure(figsize=(12, 4))
-    # plt.stackplot(np.arange(1, len(full_freq_list[0])+1),
-    #               full_freq_list, 
-    #               labels=[str(round(input_neuron_strength_range[i], 1)) + " mV" for i in range(len(input_neuron_strength_range))], 
-    #               colors=colors,
-    #             #   alpha=0.7,
-    # )
+
     full_freq_list.reverse()
     colors.reverse()
     for i, (freq, color) in enumerate(zip(full_freq_list, colors)):
@@ -250,6 +238,9 @@ def fullsim1(T, dt):
     plt.tight_layout()
     plt.show()
 
+    if save_graphs:
+        plt.savefig("q3_1.png")
+
     # Plot the fano factors and coefficient of variations
     plt.figure(figsize=(12, 4))
     for i in range(len(input_neuron_strength_range)):
@@ -263,6 +254,9 @@ def fullsim1(T, dt):
     plt.tight_layout()
     plt.show()
 
+    if save_graphs:
+        plt.savefig("q3_2.png")
+
     # Plot the coefficient of variations
     plt.figure(figsize=(12, 4))
     for i in range(len(input_neuron_strength_range)):
@@ -275,6 +269,9 @@ def fullsim1(T, dt):
     plt.legend()
     plt.tight_layout()
     plt.show()
+
+    if save_graphs:
+        plt.savefig("q3_3.png")
 
 # This simulation simulates different inhibitory to excitatory neuron ratios
 def fullsim2(T, dt):
@@ -459,7 +456,7 @@ def fullsim4():
 
 if __name__=="__main__":
     # np.random.seed(0)
-    T = 100 # ms
+    T = 1000 # ms
     dt = 1 # ms
 
     fullsim1(T, dt)

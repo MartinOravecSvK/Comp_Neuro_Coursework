@@ -6,9 +6,13 @@ Notes from the marker:
 
 Nice graphs apart from the tiny caption, resize in code not in the document! Great answer to question 3 with interesting graphs, very innovative; Q6 was also interesting though not a complete. Well done.
 
-Q1 - 9 | Q2 - 9 | Q3 - 15 | Q4 - 8 | Q5 - 8 | Q6- 12
+*Q1-9* **|** *Q2-9* **|** *Q3-15* **|** *Q4-8* **|** *Q5-8* **|** *Q6-12*
 
 61/70
+
+## Report
+
+The report was written in LaTeX and both it's compiled and code version is [here](./report/) and here is the report pdf directly [report](./report/Computational_Neuroscience_Coursework.pdf).
 
 ## Introduction
 
@@ -19,6 +23,10 @@ Bit more on the marking scheme 70%+ ~ A in the US system and 90%+ publish worthy
 
 The code is largely divided based on a question it is intended to solve but may be used somewhere else as a helper function and I didn't bother putting it in the utils, which contain some of the functions used throughout the code.
 
-Some of the code takes longer to execute, i.e. upwards of 45 - 60 minutes depending on the CPU. The code does scale linearly with the number of CPU threads, excluding some overhead.
+Some of the code takes longer to execute, i.e. several hours depending on the CPU and simulation parameters. Longer simulations and more simulations (for averaging) will obviously increase the time. The code does scale linearly with the number of CPU threads, excluding some overhead.
+
+<!-- Finish this part -->
+## Technology used:
+Python, MatplotLib, Seaborn, 
 
 ## Running the code
