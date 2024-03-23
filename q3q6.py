@@ -462,7 +462,11 @@ if __name__=="__main__":
     T = 100 # ms
     dt = 1 # ms
 
-    # fullsim1(T, dt)
+    fullsim1(T, dt)
+
     # fullsim2(T, dt)
+    
+    # Simulation of adjacent and non-adjacent spike times
     # fullsim3()
-    fullsim4()
+    
+    # fullsim4()
