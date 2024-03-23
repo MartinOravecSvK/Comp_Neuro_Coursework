@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import utils
+from utils import utils
 
-def question4(show_graph=True, spike_times = None):
+def question4(show_graph=True, spike_times = None, save_fig=False):
     if spike_times is None:
         spike_times = utils.load_rho()
     stimulus = np.genfromtxt('ExtendedCoursework/stim.dat')
@@ -43,10 +43,14 @@ def question4(show_graph=True, spike_times = None):
 
         plt.grid(True, linestyle='--', linewidth=0.5, alpha=0.7)
         plt.tight_layout()
-        plt.savefig('STA_plot.png', dpi=300) 
         plt.show()
+        if save_fig:
+            plt.savefig('STA_plot.png', dpi=300) 
     
     return sta
 
 if __name__ == "__main__":
-    question4()
+    show_graph = True
+    save_fig = False
+
+    question4(show_graph=show_graph, save_fig=save_fig)

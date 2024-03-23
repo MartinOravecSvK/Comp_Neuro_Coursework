@@ -161,6 +161,7 @@ def question5():
     plt.show()
 
 def question5custom(spike_times, constant):
+    save_fig = False
     stimulus = np.genfromtxt('ExtendedCoursework/stim.dat')
     
     intervals = [2, 10, 20, 50]
@@ -276,9 +277,10 @@ def question5custom(spike_times, constant):
     plt.tight_layout(rect=[0, 0.05, 1, 0.95], pad=3)
     # plt.legend(frameon=False, loc='upper center', bbox_to_anchor=(0.5, -0.1), ncol=3, fontsize=14)
     # fig.legend()
-    plt.savefig('STA_plot_pairs.png', dpi=300, transparent=True)
-
     plt.show()
+
+    if save_fig:
+        plt.savefig('STA_plot_pairs.png', dpi=300, transparent=True)
 
 
 if __name__ == "__main__":

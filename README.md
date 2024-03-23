@@ -14,6 +14,8 @@ Nice graphs apart from the tiny caption, resize in code not in the document! Gre
 
 The report was written in LaTeX and both it's compiled and code version is [here](./report/) and here is the report pdf directly [report](./report/Computational_Neuroscience_Coursework.pdf).
 
+Also [here](./ExtendedCoursework/) are all the files given for the coursework (questions, data).
+
 ## Introduction
 
 The coursework consisted of 6 questions and questions 3 and 6 were open-ended, meaning we (as students) had the freedom to experiment with what we thought was a good idea.
@@ -30,3 +32,19 @@ Some of the code takes longer to execute, i.e. several hours depending on the CP
 Python, MatplotLib, Seaborn, 
 
 ## Running the code
+
+ - First clone the repository with HTTPS:
+
+    ```bash
+    git clone https://github.com/MartinOravecSvK/Comp_Neuro_Coursework.git
+    ```
+    or via ssh.
+    ```bash
+    git clone git@github.com:MartinOravecSvK/Comp_Neuro_Coursework.git
+    ```
+ - Load conda environment:
+
+    ```bash
+    conda env create -f environment.yml
+    ```
+
