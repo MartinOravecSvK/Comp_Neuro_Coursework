@@ -1,4 +1,5 @@
 import os
+import sys
 
 # Get the directory of the script
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -6,9 +7,8 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 # Define the new directory relative to the script's directory
 new_directory = os.path.join(script_dir, 'src/')
 
-print(new_directory)
 # Change the current working directory to the new directory
-os.chdir(new_directory)
+sys.path.append(new_directory)
 
 import q1
 import q2

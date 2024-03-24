@@ -46,5 +46,16 @@ Python, MatplotLib, Seaborn,
 
     ```bash
     conda env create -f environment.yml
+    conda activate sim_env
     ```
 
+### Running solutions for questions 1, 2, 4, 5
+
+These are simple and quick computationas. Each has its own respective file but are also executed together in the main.
+
+To run main:
+
+```bash
+cd src/
+py
+```
