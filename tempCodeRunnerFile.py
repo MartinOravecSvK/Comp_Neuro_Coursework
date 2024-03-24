@@ -1,1 +1,0 @@
-self.previous_RI
