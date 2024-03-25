@@ -74,3 +74,7 @@ python qX.py
 Replacing the X with 1, 2, 4 or 5.
 
 To run q3q6 file you should understand basic simulation parameters as the simulation itself could take a very long time to execute.
+
+```
+python q3q6.py
+```
