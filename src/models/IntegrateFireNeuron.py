@@ -1,3 +1,9 @@
+"""
+While technically working this class has not been used in the final implementation
+of the project. The reason for this is that I ran out of time and had to focus on
+finishin the project and just used the implementation in the q3q6.py file. 
+"""
+
 class IntegrateAndFireNeuron:
     def __init__(self, 
                  threshold=-55.0, 

@@ -16,6 +16,12 @@ The report was written in LaTeX and both it's compiled and code version is [here
 
 Also [here](./ExtendedCoursework/) are all the files given for the coursework (questions, data).
 
+Notes:
+
+Please keep in mind this work has been done in a coursework period which is 3 weeks to do 2 coursework assignments so the total amount of work was realistically less than 1.5 weeks!
+
+There have been minor changes to the repository since just to make it a bit nicer as a public repository. The underlying code has not been touched apart from some comments and a little bit of cleaning of unused code.
+
 ## Introduction
 
 The coursework consisted of 6 questions and questions 3 and 6 were open-ended, meaning we (as students) had the freedom to experiment with what we thought was a good idea.

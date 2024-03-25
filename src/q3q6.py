@@ -152,6 +152,8 @@ def fullsim1(T, dt):
     input_neuron_strength_range = np.arange(0.5, 5.1, 0.5) # mV
     input_neuron_freq = 35 # Hz
 
+    # Change the number of simulations
+    # With higher number of simulations, the results will be more accurate
     full_sim_n = 1
     full_freq_list = [[] for _ in range(len(input_neuron_strength_range))]
 
@@ -261,6 +263,10 @@ def fullsim1(T, dt):
 
     if save_graphs:
         plt.savefig("q3_2.png")
+
+    return
+
+    # Not fully working...
 
     # Plot the coefficient of variations
     plt.figure(figsize=(12, 4))
@@ -466,7 +472,7 @@ def fullsim4():
 # dt: Time step of the simulation (ms)
 if __name__=="__main__":
     # np.random.seed(0)
-    T = 100 # ms
+    T = 1000 # ms
     dt = 1 # ms
 
     fullsim1(T, dt)
