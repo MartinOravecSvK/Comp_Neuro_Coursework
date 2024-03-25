@@ -1,0 +1,13 @@
+name: sim_env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - scipy
+  - scikit-learn
+  - pytorch
+  - pandas
+  - numpy
+  - matplotlib
+  - seaborn
+prefix: /home/martin/Downloads/yes/envs/sim_env

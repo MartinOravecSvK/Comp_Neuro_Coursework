@@ -98,6 +98,10 @@ def poisson_neuron(firing_rate, duration, refractory_period=0):
 
     return np.array(spike_times)
 
+# Simulates a neuron with a given input strength and input neurons
+# Change the constant_input to change the constant input and thus the neuron behaviour
+# This is useful to see the effect of the random input neurons while keeping some constant input
+# Returns the firing rate and the spike times
 def simulate(input_strength, inhi_input, exci_input, T, dt):
 
     iaf_neuron = IntegrateAndFireNeuron()
@@ -113,7 +117,7 @@ def simulate(input_strength, inhi_input, exci_input, T, dt):
 
     for t in np.arange(0, T, dt):
         RI = input_values[int(t / dt)] + constant_input
-        iaf_neuron.step(RI, dt)
+        iaf_neuron.stepRef(RI, dt)
 
     return len(iaf_neuron.getSpikes()) / (T / 1000), iaf_neuron.getSpikes()
 
@@ -455,9 +459,14 @@ def fullsim4():
     # plt.savefig("q6.png")
     plt.show()
 
+
+# Main simulation function
+# Adjust the parameters to change the simulation
+# T: Total time of the simulation (ms)
+# dt: Time step of the simulation (ms)
 if __name__=="__main__":
     # np.random.seed(0)
-    T = 1000 # ms
+    T = 100 # ms
     dt = 1 # ms
 
     fullsim1(T, dt)
