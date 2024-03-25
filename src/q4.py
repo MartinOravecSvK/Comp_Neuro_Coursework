@@ -1,8 +1,22 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import utils
+from utils import utils
+"""
+STA calculation
+We start by loading the spike times and the stimulus data
+  - then calculate the STA by averaging the stimulus segments around each spike time
+  - plot the STA and mark the maximum value
+  - return the STA for further analysis
+  - can also save the plot as an image
 
-def question4(show_graph=True, spike_times = None):
+Parameters:
+  show_graph: Whether to display the plot (Default: True)
+  spike_times: The spike times of the neuron (Default: None)
+  save_fig: Whether to save the plot as an image (Default: False)
+Returns:
+  sta: The spike-triggered average of the stimulus
+"""
+def question4(show_graph=True, spike_times = None, save_fig=False):
     if spike_times is None:
         spike_times = utils.load_rho()
     stimulus = np.genfromtxt('ExtendedCoursework/stim.dat')
@@ -43,10 +57,14 @@ def question4(show_graph=True, spike_times = None):
 
         plt.grid(True, linestyle='--', linewidth=0.5, alpha=0.7)
         plt.tight_layout()
-        plt.savefig('STA_plot.png', dpi=300) 
         plt.show()
+        if save_fig:
+            plt.savefig('STA_plot.png', dpi=300) 
     
     return sta
 
 if __name__ == "__main__":
-    question4()
+    show_graph = True
+    save_fig = False
+
+    question4(show_graph=show_graph, save_fig=save_fig)

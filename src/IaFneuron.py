@@ -1,10 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import utils
 import threading
 import time
 from multiprocessing import Pool, Value, Manager, Process
+from utils import utils
 
 class IntegrateAndFireNeuron:
     def __init__(self, threshold=-55.0, tau=10.0, R=1.0, E=-70.0, absolut_refractory_period=1.0, relative_refractory_period=4.0, reset_voltage=-80.0):
@@ -395,10 +395,8 @@ def simulatePoissonInput(simulated_input, T, dt):
     return membrane_potentials, spikes
 
 def simulatePoisson(display_graph=True):
-    # TODO:
-    # Make these values lists to simulate multiple neuron parameters for analaysis
-
     np.random.seed(2024)
+
     # Simulated neuron parameters
     T = 1000  # Total simulation time (ms)
     dt = 0.25  # Time step (ms)
@@ -426,9 +424,10 @@ def simulatePoisson(display_graph=True):
     presynaptic_neurons_num_inhib = 100 # Number of inhibitory poisson process simulated neurons
     presynaptic_neurons_num_excit = 100 # Number of inhibitory poisson process simulated neurons    
 
-    presynaptic_neurons_inhib = [poisson_neuron(inhibitory_firing_rate, T) for i in range(presynaptic_neurons_num_inhib)]
-    presynaptic_neurons_excit = [poisson_neuron(excitatory_firing_rate, T) for i in range(presynaptic_neurons_num_excit)]
+    presynaptic_neurons_inhib = [poisson_neuron(inhibitory_firing_rate, T) for _ in range(presynaptic_neurons_num_inhib)]
+    presynaptic_neurons_excit = [poisson_neuron(excitatory_firing_rate, T) for _ in range(presynaptic_neurons_num_excit)]
     simulated_input = np.array([0 for i in range(len(time))])
+
     for neuron in presynaptic_neurons_inhib:
         for spike in neuron:
             simulated_input[int(spike)] += inhibitory_spike_strength
@@ -561,7 +560,8 @@ def worker(shared_i, lock, threads, frequencies_list, n_neurons, strength, neuro
 
 def fullsim():
 
-    T = 100
+    # Main simulation parameters
+    T = 1000
     dt = 0.01
     num_of_sim_neurons = np.arange(1, 251, 2)
     neuron_frequency = 10
@@ -605,10 +605,16 @@ if __name__ == "__main__":
     shared_i = 0
     lock = threading.Lock()
     
-    # np.random.seed(2024)
+    # Simulate the constant input
+    # Not needed for the coursework (just a sanity check)
+    simulate_constant = False
 
-    simulate_constant = True
+    # Simulate the poisson input
+    # The pre-synaptic neurons are simulated using poisson processes
+    # This part is needed for the coursework (Question 3) but is not an extention
     simulate_poisson = False
+
+    # Display the graphs
     display_graph = True
 
     if simulate_constant: simulateConstant()
@@ -617,7 +623,7 @@ if __name__ == "__main__":
     T = 10000  # Total simulation time (ms)
     dt = 0.01  # Time step (ms)
 
-    run_multiple_simulations = False
+    run_multiple_simulations = True
     run_single_simulation = False
 
     if run_multiple_simulations: simulateMultipleOptions(verbose=False, display_graphs=display_graph, T=T, dt=dt)

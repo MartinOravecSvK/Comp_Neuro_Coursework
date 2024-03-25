@@ -1,6 +1,16 @@
 import numpy as np
-import utils
+from utils import utils
 
+"""
+Question 2: Fano Factor and Coefficient of Variation of rho.dat (H1 fly neuron data)
+
+    Code to calculate the Fano factor and coefficient of variation of the interspike intervals (ISI)
+"""
+
+# Main function to answer question 2
+# - Loads the spike train data from rho.dat
+# - Calculates the Fano factor and coefficient of variation of the ISI
+# - Displays the results
 def question2():
     duration = 1000  # 20 minutes in seconds
     window_sizes = [0.01, 0.05, 0.1] # seconds

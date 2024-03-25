@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import utils
-import q4
 import seaborn as sns
+import q4
+from utils import utils
 
 def find_spike_pairs(spike_times, interval, adjacent_only):
     pairs = []
@@ -37,7 +37,7 @@ def calculate_triggered_stimulus(stimulus, spike_times, intervals, adjacent_only
 
     return triggered_stimuli
 
-def question5():
+def question5(save_fig=False):
     stimulus = np.genfromtxt('ExtendedCoursework/stim.dat')
     spike_times = utils.load_rho()
 
@@ -45,60 +45,6 @@ def question5():
 
     triggered_stimuli = calculate_triggered_stimulus(stimulus, spike_times, intervals)
     triggered_stimuli_adjacent = calculate_triggered_stimulus(stimulus, spike_times, intervals, adjacent_only=True)
-
-    # Display the results
-    # print("Calculated average stimmulus for each interval (not necessarily adjacent spike_times):\n", triggered_stimuli)
-    # print("\n")
-    # print("Calculated average stimmulus for each interval\n", triggered_stimuli_adjacent)
-
-    # # Plotting
-    # plt.figure(figsize=(10, 6))
-    # for interval in intervals:
-    #     plt.plot(np.linspace(-100, 0), triggered_stimuli[interval], label=f'{interval}ms')
-    # plt.legend()
-    # plt.xlabel('Time before spike (ms)', fontsize=12, fontweight='bold')
-    # plt.ylabel('Triggered Stimulus', fontsize=12, fontweight='bold')
-    # plt.title('Triggered Stimulus', fontsize=14, fontweight='bold')
-    # plt.tight_layout()
-    # # plt.savefig('Triggered_Stimulus_plot.png', dpi=300)  # Save the figure in high-resolution
-    # plt.show()
-
-    # # Plotting
-    # plt.figure(figsize=(10, 6))
-    # for interval in intervals:
-    #     plt.plot(np.linspace(-100, 0), triggered_stimuli_adjacent[interval], label=f'{interval}ms')
-    # plt.legend()
-    # plt.xlabel('Time before spike (ms)', fontsize=12, fontweight='bold')
-    # plt.ylabel('Triggered Stimulus', fontsize=12, fontweight='bold')
-    # plt.title('Triggered Stimulus (Adjacent Spike Times Only)', fontsize=14, fontweight='bold')
-    # plt.tight_layout()
-    # # plt.savefig('Triggered_Stimulus_plot.png', dpi=300)  # Save the figure in high-resolution
-    # plt.show()
-
-    # plt.figure(figsize=(10, 6))
-
-    # colors = ['blue', 'green', 'red', 'purple']  # Different colors for each interval
-    # intervals = [2, 10, 20, 50]
-
-    # # Plot for non-adjacent spike times
-    # for i, interval in enumerate(intervals):
-    #     plt.plot(np.linspace(-100, 0, len(triggered_stimuli[interval])), 
-    #             triggered_stimuli[interval], 
-    #             label=f'{interval}ms Non-Adjacent', linestyle='--', color=colors[i])
-
-    # # Plot for adjacent spike times
-    # for i, interval in enumerate(intervals):
-    #     plt.plot(np.linspace(-100, 0, len(triggered_stimuli_adjacent[interval])), 
-    #             triggered_stimuli_adjacent[interval], 
-    #             label=f'{interval}ms Adjacent', linestyle='-', color=colors[i])
-
-    # plt.legend()
-    # plt.xlabel('Time before spike (ms)', fontsize=12, fontweight='bold')
-    # plt.ylabel('Triggered Stimulus', fontsize=12, fontweight='bold')
-    # plt.title('Comparison of Triggered Stimulus (Adjacent vs. Non-Adjacent)', fontsize=14, fontweight='bold')
-    # plt.tight_layout()
-    # # plt.savefig('Combined_Triggered_Stimulus_plot.png', dpi=300)  # Save the figure in high-resolution
-    # plt.show()
 
     sta_single_spike = q4.question4(show_graph=False)
 
@@ -155,12 +101,14 @@ def question5():
     # Tight layout often improves the spacing between plot elements
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # Adjust the rect to prevent overlap of suptitle and x/y labels
 
-    # Optionally, save the figure with a transparent background
-    plt.savefig('STA_plot_pairs.png', dpi=300, transparent=True)
-
     plt.show()
 
+    # Optionally, save the figure with a transparent background
+    if save_fig:    
+        plt.savefig('STA_plot_pairs.png', dpi=300, transparent=True)
+
 def question5custom(spike_times, constant):
+    save_fig = False
     stimulus = np.genfromtxt('ExtendedCoursework/stim.dat')
     
     intervals = [2, 10, 20, 50]
@@ -276,10 +224,12 @@ def question5custom(spike_times, constant):
     plt.tight_layout(rect=[0, 0.05, 1, 0.95], pad=3)
     # plt.legend(frameon=False, loc='upper center', bbox_to_anchor=(0.5, -0.1), ncol=3, fontsize=14)
     # fig.legend()
-    plt.savefig('STA_plot_pairs.png', dpi=300, transparent=True)
-
     plt.show()
+
+    if save_fig:
+        plt.savefig('STA_plot_pairs.png', dpi=300, transparent=True)
 
 
 if __name__ == "__main__":
-    question5()
+    save_fig = False
+    question5(save_fig=save_fig)

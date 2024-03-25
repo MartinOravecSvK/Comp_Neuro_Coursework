@@ -1,8 +1,16 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+"""
+This implementation of the Hodkin Huxley model was not used in the submission.
+Because of this I can't gurantee that it works. It should also be noted that
+Hodkin Huxley model was not directly asked for in the coursework brief and thus
+I did not spend time on it. This implementation is based on the constant input
+graph and the constant input graph seems to work. The implementation might need
+some changes to work with other inputs. 
+"""
+
 class HodgkinHuxleyNeuron:
-    """ Hodgkin-Huxley Neuron Model """
     def __init__(self):
         # Constants
         self.C_m = 1.0  # membrane capacitance, in uF/cm^2

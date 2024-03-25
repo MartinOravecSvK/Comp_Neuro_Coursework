@@ -1,14 +1,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import utils
 import time
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import make_pipeline, Pipeline
 from sklearn.preprocessing import MinMaxScaler
 from multiprocessing import Value, Manager, Process
+
 import q5
+from utils import utils
 
 class IntegrateAndFireNeuron:
     def __init__(self, 
@@ -97,6 +98,10 @@ def poisson_neuron(firing_rate, duration, refractory_period=0):
 
     return np.array(spike_times)
 
+# Simulates a neuron with a given input strength and input neurons
+# Change the constant_input to change the constant input and thus the neuron behaviour
+# This is useful to see the effect of the random input neurons while keeping some constant input
+# Returns the firing rate and the spike times
 def simulate(input_strength, inhi_input, exci_input, T, dt):
 
     iaf_neuron = IntegrateAndFireNeuron()
@@ -112,7 +117,7 @@ def simulate(input_strength, inhi_input, exci_input, T, dt):
 
     for t in np.arange(0, T, dt):
         RI = input_values[int(t / dt)] + constant_input
-        iaf_neuron.step(RI, dt)
+        iaf_neuron.stepRef(RI, dt)
 
     return len(iaf_neuron.getSpikes()) / (T / 1000), iaf_neuron.getSpikes()
 
@@ -147,7 +152,9 @@ def fullsim1(T, dt):
     input_neuron_strength_range = np.arange(0.5, 5.1, 0.5) # mV
     input_neuron_freq = 35 # Hz
 
-    full_sim_n = 10
+    # Change the number of simulations
+    # With higher number of simulations, the results will be more accurate
+    full_sim_n = 1
     full_freq_list = [[] for _ in range(len(input_neuron_strength_range))]
 
     full_coefficient_of_variations = [[] for _ in range(len(input_neuron_strength_range))]
@@ -210,27 +217,15 @@ def fullsim1(T, dt):
             full_freq_list[i][j] /= full_sim_n
             # full_coefficient_of_variations[i][j] /= full_sim_n
 
-    # degree = 3
-    # model = make_pipeline(PolynomialFeatures(degree), LinearRegression())
-    # predictions = []
-    # for i in range(len(input_neuron_strength_range)):
-    #     model.fit(np.array(input_exci_neuron_num_range).reshape(-1, 1), 
-    #               np.array(full_freq_list[i]).reshape(-1, 1))
-
-    #     predictions.append(model.predict(np.array(input_exci_neuron_num_range).reshape(-1, 1)))
-
     print("Done in time: " + str(round(time.time() - start_time, 2)) + "s or " + str(round((time.time() - start_time) / 60, 2)) + "m")
+
+    save_graphs = False
 
     colors = sns.cubehelix_palette(len(input_neuron_strength_range), start=0.5, rot=-.75)
 
     # Plot the results from the frequencies list
     plt.figure(figsize=(12, 4))
-    # plt.stackplot(np.arange(1, len(full_freq_list[0])+1),
-    #               full_freq_list, 
-    #               labels=[str(round(input_neuron_strength_range[i], 1)) + " mV" for i in range(len(input_neuron_strength_range))], 
-    #               colors=colors,
-    #             #   alpha=0.7,
-    # )
+
     full_freq_list.reverse()
     colors.reverse()
     for i, (freq, color) in enumerate(zip(full_freq_list, colors)):
@@ -250,6 +245,9 @@ def fullsim1(T, dt):
     plt.tight_layout()
     plt.show()
 
+    if save_graphs:
+        plt.savefig("q3_1.png")
+
     # Plot the fano factors and coefficient of variations
     plt.figure(figsize=(12, 4))
     for i in range(len(input_neuron_strength_range)):
@@ -263,6 +261,13 @@ def fullsim1(T, dt):
     plt.tight_layout()
     plt.show()
 
+    if save_graphs:
+        plt.savefig("q3_2.png")
+
+    return
+
+    # Not fully working...
+
     # Plot the coefficient of variations
     plt.figure(figsize=(12, 4))
     for i in range(len(input_neuron_strength_range)):
@@ -275,6 +280,9 @@ def fullsim1(T, dt):
     plt.legend()
     plt.tight_layout()
     plt.show()
+
+    if save_graphs:
+        plt.savefig("q3_3.png")
 
 # This simulation simulates different inhibitory to excitatory neuron ratios
 def fullsim2(T, dt):
@@ -457,12 +465,21 @@ def fullsim4():
     # plt.savefig("q6.png")
     plt.show()
 
+
+# Main simulation function
+# Adjust the parameters to change the simulation
+# T: Total time of the simulation (ms)
+# dt: Time step of the simulation (ms)
 if __name__=="__main__":
     # np.random.seed(0)
-    T = 100 # ms
+    T = 1000 # ms
     dt = 1 # ms
 
-    # fullsim1(T, dt)
+    fullsim1(T, dt)
+
     # fullsim2(T, dt)
+    
+    # Simulation of adjacent and non-adjacent spike times
     # fullsim3()
-    fullsim4()
+    
+    # fullsim4()
